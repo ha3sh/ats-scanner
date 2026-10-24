@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+
+# Frontend
+node_modules/
+web/dist/
+
+# Built frontend is COMMITTED so runtime needs no Node (see docs/ARCHITECTURE.md
+# implementation notes) — explicitly un-ignore it.
+!src/ats_scanner/static/
+!src/ats_scanner/static/**

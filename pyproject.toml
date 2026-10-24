@@ -1,0 +1,51 @@
+[project]
+name = "ats-scanner"
+version = "0.1.0"
+description = "ATS resume scanner: compare a resume against a job description locally."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "python-multipart",
+    "pydantic",
+    "pdfplumber",
+    "python-docx",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "poethepoet",
+    "pre-commit",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.0,<1.0.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+package = true
+
+[tool.poe.tasks]
+install = [{ "cmd" = "uv sync" }, { "cmd" = "uv run pre-commit install" }]
+lint = "ruff check ."
+format = "ruff format ."
+typecheck = "mypy ."
+test = "pytest"
+check = ["lint", "typecheck", "test"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
