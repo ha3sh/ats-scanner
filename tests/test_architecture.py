@@ -16,6 +16,9 @@ FORBIDDEN_ROOTS = {
     "http.client",  # stdlib HTTP client
     "urllib.request",  # stdlib HTTP client
     "socket",  # network I/O
+    "ats_scanner.api",  # transport layer
+    "ats_scanner.adapters",  # adapters layer
+    "ats_scanner.main",  # wiring layer
 }
 
 

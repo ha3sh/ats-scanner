@@ -21,11 +21,15 @@ dev = [
     "mypy",
     "poethepoet",
     "pre-commit",
+    "httpx2>=2.16.0",
 ]
 
 [build-system]
 requires = ["uv_build>=0.8.0,<1.0.0"]
 build-backend = "uv_build"
+
+[project.scripts]
+ats = "ats_scanner.__main__:main"
 
 [tool.uv]
 package = true
