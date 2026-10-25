@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ats_scanner.api import ERROR_STATUSES, AppError, create_app
+from ats_scanner.api import ERROR_STATUSES, create_app
 from ats_scanner.config import (
     APP_VERSION,
     DICTIONARY_VERSION,
@@ -12,6 +12,7 @@ from ats_scanner.config import (
     MAX_JD_CHARS,
     MAX_PAGES,
 )
+from ats_scanner.core.errors import AppError, ErrorCode
 
 
 def test_health_reports_versions_and_limits() -> None:
@@ -50,6 +51,11 @@ def test_unknown_error_code_is_rejected_by_the_setup() -> None:
 
     with pytest.raises(ValueError, match="not a SPEC error code"):
         AppError("not_a_code", "boom")
+
+
+def test_error_codes_and_statuses_cannot_drift() -> None:
+    """Every SPEar code has exactly one HTTP status, in both directions."""
+    assert set(ERROR_STATUSES) == {member for member in ErrorCode}
 
 
 def test_request_validation_error_uses_the_envelope() -> None:

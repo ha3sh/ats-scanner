@@ -28,6 +28,8 @@ src/
       ports.py                 Extractor, TermExtractor, SuggestionProvider
       documents.py             extracted-document model shared with adapters
                                (row-order and column-order text)
+      errors.py                SPEC §5 error codes and AppError (no FastAPI;
+                               adapters and core raise it, api translates it)
       sections.py              section and contact detection
       terms.py                 JD cleaning, term extraction, matching
       score.py                 weights and weighted coverage only
@@ -84,8 +86,10 @@ src/ats_scanner/main.py (wiring) ──►  adapters/extract.py
   `src/ats_scanner/data/dictionary.json` once, validates it with a Pydantic
   model, and injects both into the core pipeline. This is the only place wiring
   lives.
-- `src/ats_scanner/api.py` handles transport: multipart, limits, error mapping,
-  headers.
+- `src/ats_scanner/api.py` handles transport: multipart, limits, error
+  mapping, headers. Error codes and `AppError` live in `core/errors.py` (no
+  FastAPI there); this module maps each code to its HTTP status and wraps one
+  human sentence in the JSON envelope.
 - `web/` knows only the HTTP contract in `web/src/api/types.ts`.
 - Frontend stack: React + TypeScript (strict) + Vite, Tailwind, shadcn/ui
   restyled. Versions are not pinned in docs; they are chosen at Day 2 via

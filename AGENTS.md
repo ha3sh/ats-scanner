@@ -28,6 +28,7 @@
 - Every finding and score component links to evidence.
 - Don't add a dependency without asking; say what it's for.
 - Don't hand-edit uv.lock or src/ats_scanner/static. Never run the frontend build while the server is running.
+- Only stop processes you started yourself; never kill a process by port number.
 - One prompt is one small change. Stay inside its scope. Don't start the next roadmap day on your own.
 
 ## Commits

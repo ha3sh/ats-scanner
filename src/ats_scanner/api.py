@@ -1,7 +1,8 @@
 """Routes, request validation, error envelope.
 
 Transport only: version reporting, the error envelope, and response headers
-(SPEC §5). Business logic lives in core/; wiring lives in main.py.
+(SPEC §5). Business logic lives in core/; wiring lives in main.py; the error
+codes and AppError live in core/errors.py and are translated here.
 """
 
 from collections.abc import AsyncIterator
@@ -22,34 +23,24 @@ from ats_scanner.config import (
     MAX_JD_CHARS,
     MAX_PAGES,
 )
+from ats_scanner.core.errors import AppError, ErrorCode
 
 # SPEC §5 error table: every code with its HTTP status.
-ERROR_STATUSES: dict[str, int] = {
-    "unsupported_type": 415,
-    "too_large": 413,
-    "too_many_pages": 422,
-    "encrypted_pdf": 422,
-    "no_extractable_text": 422,
-    "bad_docx": 422,
-    "jd_too_short": 422,
-    "jd_too_long": 422,
-    "invalid_request": 422,
+ERROR_STATUSES: dict[ErrorCode, int] = {
+    ErrorCode.UNSUPPORTED_TYPE: 415,
+    ErrorCode.TOO_LARGE: 413,
+    ErrorCode.TOO_MANY_PAGES: 422,
+    ErrorCode.ENCRYPTED_PDF: 422,
+    ErrorCode.NO_EXTRACTABLE_TEXT: 422,
+    ErrorCode.BAD_DOCX: 422,
+    ErrorCode.JD_TOO_SHORT: 422,
+    ErrorCode.JD_TOO_LONG: 422,
+    ErrorCode.INVALID_REQUEST: 422,
 }
 
 _VALIDATION_MESSAGE = (
     "The request was not valid. Check the uploaded file and job description fields, then try again."
 )
-
-
-class AppError(Exception):
-    """An error carrying a SPEC §5 code and one human sentence."""
-
-    def __init__(self, code: str, message: str) -> None:
-        if code not in ERROR_STATUSES:
-            raise ValueError(f"{code!r} is not a SPEC error code")
-        self.code = code
-        self.message = message
-        super().__init__(message)
 
 
 class ErrorEnvelope(BaseModel):
@@ -97,14 +88,16 @@ def create_app() -> FastAPI:
     async def _handle_app_error(request: Request, exc: AppError) -> JSONResponse:
         return JSONResponse(
             status_code=ERROR_STATUSES[exc.code],
-            content=ErrorEnvelope(code=exc.code, message=exc.message).model_dump(),
+            content=ErrorEnvelope(code=exc.code.value, message=exc.message).model_dump(),
         )
 
     @app.exception_handler(RequestValidationError)
     async def _handle_validation(request: Request, exc: RequestValidationError) -> JSONResponse:
         return JSONResponse(
-            status_code=ERROR_STATUSES["invalid_request"],
-            content=ErrorEnvelope(code="invalid_request", message=_VALIDATION_MESSAGE).model_dump(),
+            status_code=ERROR_STATUSES[ErrorCode.INVALID_REQUEST],
+            content=ErrorEnvelope(
+                code=ErrorCode.INVALID_REQUEST.value, message=_VALIDATION_MESSAGE
+            ).model_dump(),
         )
 
     @app.get("/api/health", response_model=HealthResponse)
