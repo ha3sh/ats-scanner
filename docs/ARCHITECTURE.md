@@ -27,6 +27,7 @@ src/
     core/
       ports.py                 Extractor, TermExtractor, SuggestionProvider
       documents.py             extracted-document model shared with adapters
+                               (row-order and column-order text)
       sections.py              section and contact detection
       terms.py                 JD cleaning, term extraction, matching
       score.py                 weights and weighted coverage only
@@ -86,7 +87,10 @@ src/ats_scanner/main.py (wiring) ──►  adapters/extract.py
 - `src/ats_scanner/api.py` handles transport: multipart, limits, error mapping,
   headers.
 - `web/` knows only the HTTP contract in `web/src/api/types.ts`.
-
+- Frontend stack: React + TypeScript (strict) + Vite, Tailwind, shadcn/ui
+  restyled. Versions are not pinned in docs; they are chosen at Day 2 via
+  context7 or the npm registry. The stack must work with Node 22.12; if
+  anything needs a newer Node, flag it before changing anything.
 A guard test asserts that `core/` imports no HTTP client, no FastAPI, no
 pdfplumber, and no python-docx, that a `core` import works without the adapter
 modules loaded, and that `core/` performs no file I/O. A required test loads
@@ -103,7 +107,7 @@ break the no-network guarantee, so it must be opt-in and disclosed in the UI.
 
 | Protocol | Input | Output | v1 implementation |
 | --- | --- | --- | --- |
-| `Extractor` | file bytes, filename, content type | `core/documents.py` model: pages of plain text, page boundaries, paragraph/block order, layout warnings (columns suspected, tables, text boxes, headers/footers), character count | `adapters/extract.py`: pdfplumber with word coordinates and x-clustering; python-docx including tables, headers/footers, and `w:txbxContent` |
+| `Extractor` | file bytes, filename, content type | `core/documents.py` model: pages of plain text in **row order** (raw stream) and **column order** (column-clustered), page boundaries, paragraph/block order, layout warnings (columns suspected, tables, text boxes, headers/footers), character count | `adapters/extract.py`: pdfplumber with word coordinates and x-clustering; python-docx including tables, headers/footers, and `w:txbxContent` |
 | `TermExtractor` | cleaned JD text, validated dictionary data | weighted, canonicalized terms with JD context spans | `core/terms.py`: rule-based n-grams plus the injected dictionary |
 | `SuggestionProvider` | finished report | 3–5 prioritized suggestions tied to finding ids | `core/suggestions.py`: templates driven by findings |
 
@@ -198,6 +202,14 @@ Schema changes require bumping `schema_version`. The report also carries
   is generated output and is committed so that runtime needs no Node.
 - Nothing in `src/ats_scanner/static/` is ever hand-edited. Change the React
   source and rebuild.
+- UI wording rule: no vendor names anywhere in the UI; the headline is never
+  called an "ATS score" (weighted JD term coverage); the generic word "ATS" is
+  allowed only for the product name and the "What the ATS sees" tab, whose
+  caption reads "Plain-text extraction, the way many parsers read a file. Real
+  systems differ." Row/column views are captioned "possible extractor outputs".
+- The dual reading orders (row/column) live in the adapter output model
+  (`core/documents.py`); comparing them is a pure-core concern via Pydantic, not
+  an adapter behavior.
 - The Vite build clears `outDir` before writing. Never run `uv run ats-build`
   while the server is running, or the running app will 404 the assets it was
   serving.

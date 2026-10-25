@@ -44,9 +44,21 @@ employer's applicant tracking system.
    indeterminate "Analyzing locally…" state with an elapsed timer. No staged or
    fake progress.
 4. The report screen appears with the layout described below.
-5. A "What the ATS sees" tab shows the plain extracted text.
+5. A "What the ATS sees" tab shows the plain extracted text. Its caption reads:
+   "Plain-text extraction, the way many parsers read a file. Real systems
+   differ."
 6. Refreshing the page drops the report. There is no history and nothing to
    delete.
+
+### Wording rules
+
+- No vendor names (any ATS maker, tool, or product) appear anywhere in the UI.
+- The headline metric is never called an "ATS score"; see section 3.
+- The generic word "ATS" may appear only where factual: the product name and the
+  "What the ATS sees" tab (with the caption above).
+- Row-order and column-order views are always captioned "possible extractor
+  outputs" and framed as what a text extractor could produce — never as what a
+  specific system does.
 
 ### Report screen contents
 
@@ -57,6 +69,9 @@ Left rail, sticky:
   the definition visible on the same screen. The caption under the ring reads:
   `Required terms: X of Y · Other terms: A of B · required terms count double.`
   There is no standalone fraction such as "31 of 41 terms".
+- A small determinism footer line: engine version, dictionary version, and the
+  report content hash. There is no re-run control; byte-identical reruns are
+  proven by tests, not by a button.
 - The top 3–5 prioritized fixes, each tied to a finding.
 
 Main column:
@@ -67,8 +82,14 @@ Main column:
 - Format and parse findings grouped by severity, each with evidence and a fix.
 - Title/seniority and experience alignment as **informational findings**,
   visually separate from the headline. They never change the score.
+- The row-order and column-order views of the page, each captioned "possible
+  extractor outputs" (see section 4).
+- A JD-cleaning diff view: the JD as pasted, and the JD after boilerplate
+  cleaning, so the denominator is auditable.
+- A copy-report action that hands the full report JSON to the clipboard.
 
-Full width: the "What the ATS sees" tab.
+Full width: the "What the ATS sees" tab, with the caption specified in the user
+flow.
 
 Footer: the "what this cannot tell you" block.
 
@@ -156,8 +177,10 @@ separate from `score`.
 
 ### Determinism
 
-No randomness, no network, no model inference. The dictionary version and engine
-version are returned with every report so two reports can be compared honestly.
+No randomness, no network, no model inference. The dictionary version, engine
+version, and a deterministic report content hash are returned with every report.
+A test asserts that two runs on identical inputs produce byte-identical reports;
+the footer line surfaces the versions and hash. There is no re-run button.
 
 ## 4. Findings
 
@@ -171,10 +194,14 @@ suggested fix. No vibes, no unsupported claims.
 4. Multi-column layout suspected (PDF) or column section breaks (DOCX).
 5. Tables present.
 6. Text boxes or shapes present.
-7. Ambiguous dates ("Summer 2023") or missing dates in experience entries.
+7. Ambiguous dates ("Summer 2023"), or abbreviated and non-standard date
+   formats (for example "Jan '22", "01/22") that a text extractor may misread —
+   reported generically, with no vendor names.
 8. Non-standard section headings.
 9. Decorative glyphs, emoji, arrows, or ligatures.
-10. Very long resume (more than 2 pages) — informational, low severity.
+10. Contact details expressed only as icons or glyphs, with no adjacent text
+    label — icon-only contact rows may not survive plain-text extraction.
+11. Very long resume (more than 2 pages) — informational, low severity.
 
 Image-only or no-extractable-text documents are a hard error, not a finding.
 
@@ -190,9 +217,29 @@ is reported as found or not found, with the heading text that triggered it.
 
 A first-class tab showing the plain extracted text with page markers, character
 count, extraction method, and warnings (for example "column order suspected on
-page 1"). A toggle highlights matched terms. Matched spans are returned as
-code-point offsets in the extracted text; the frontend converts via
-`Array.from` so emoji and other non-BMP characters cannot shift highlights.
+page 1"). Its caption reads: "Plain-text extraction, the way many parsers read
+a file. Real systems differ." A toggle highlights matched terms. Matched spans
+are returned as code-point offsets in the extracted text; the frontend converts
+via `Array.from` so emoji and other non-BMP characters cannot shift highlights.
+
+### Row order and column order views
+
+The same extraction can be emitted two ways:
+
+- **Row order** — the raw document stream: line-by-line across the page, even
+  where columns interleave. This is what a naive text extractor could produce.
+- **Column order** — text clustered per detected column, which can recover the
+  intended reading order when columns are actually present.
+
+Both are captioned "possible extractor outputs". They show what can go wrong in
+plain-text extraction; no claim is made about how any specific system reads a
+file. When the two orders differ materially, a layout finding records it and
+the interleaved row-order text is the evidence.
+
+### JD-cleaning transparency
+
+The report includes the JD as pasted and the JD after boilerplate cleaning, so
+the score's denominator is auditable.
 
 This view is the ground truth: whenever layout detection is uncertain, the text
 order shown here is what the report reasons about.
@@ -281,6 +328,8 @@ error messages or logs.
 - Tests assert the claim: during an analysis, patch socket connect calls to
   raise and assert none occur. A separate trace asserts no user-content files
   are created under the working directory or the temp directory.
+- The copy-report action hands the report JSON to the clipboard. That is a user
+  action: the app itself still never writes user content to disk.
 
 ## 7. What this cannot tell you
 
@@ -307,5 +356,9 @@ The README must state:
 - Limits: 5 MB, 10 pages, 20k JD characters.
 - How the score is computed, including that required terms count double, and
   that alignment is informational and outside the score.
+- What the row-order and column-order views show ("possible extractor outputs")
+  and the JD-cleaning diff.
+- The determinism footer: engine/dictionary versions and report hash, with
+  byte-identical reruns proven by tests.
 - What the tool cannot tell you.
-- Dev commands: `uv run ats-dev`, `npm run dev`, `uv run check`.
+- Dev commands: `uv run ats-dev`, `npm run dev`, `uv run poe check`.
