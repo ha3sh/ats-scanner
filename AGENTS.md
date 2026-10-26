@@ -4,7 +4,9 @@
 - Install: `uv sync`
 - Before every commit: `uv run poe check` (ruff + mypy + pytest; must pass)
 - One test: `uv run pytest tests/test_architecture.py::test_core_imports_no_fastapi_parsers_or_http_clients -v`
-- Frontend commands are added when web/ is built.
+- Build the frontend (writes `src/ats_scanner/static/`; never while the server runs): `uv run ats-build` (runs `npm ci` then `npm run build` in `web/`; needs Node 22.12+)
+- Frontend dev server (second terminal, with `uv run ats-dev`): `npm run dev` in `web/` (proxies `/api` to `http://127.0.0.1:8000`)
+- Type-check the frontend alone: `npx tsc --noEmit` in `web/`
 
 ## Read first
 - docs/PRODUCT_PLAN.md (what and why), docs/SPEC.md (behaviour), docs/ARCHITECTURE.md (structure), docs/ROADMAP.md (order of work).

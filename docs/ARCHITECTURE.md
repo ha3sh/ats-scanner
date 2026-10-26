@@ -22,6 +22,7 @@ src/
     main.py                    FastAPI app, static mount, startup wiring
     api.py                     routes, request validation, error envelope
     config.py                  limits, versions, paths
+    tooling.py                 ats-build / ats-dev helpers (npm discovery, steps)
     adapters/
       extract.py               Extractor implementations (pdfplumber, python-docx)
     core/
@@ -42,9 +43,13 @@ src/
     static/                    built frontend, single source of truth (committed)
 web/
   index.html
-  package.json
-  vite.config.ts               build.outDir -> ../src/ats_scanner/static
+  package.json                 exact-pinned deps; lockfile committed
+  tsconfig.json                strict TypeScript
+  vite.config.ts               react + tailwind plugins; build.outDir -> ../src/ats_scanner/static
   src/
+    main.tsx                   React entry point
+    App.tsx                    shell page + /api/health status line
+    index.css                  Tailwind entry
     api/types.ts               generated from OpenAPI
     routes/
     components/
@@ -92,9 +97,9 @@ src/ats_scanner/main.py (wiring) ──►  adapters/extract.py
   human sentence in the JSON envelope.
 - `web/` knows only the HTTP contract in `web/src/api/types.ts`.
 - Frontend stack: React + TypeScript (strict) + Vite, Tailwind, shadcn/ui
-  restyled. Versions are not pinned in docs; they are chosen at Day 2 via
-  context7 or the npm registry. The stack must work with Node 22.12; if
-  anything needs a newer Node, flag it before changing anything.
+  restyled. Versions are exact-pinned in `web/package.json` with
+  `package-lock.json` committed; no `^` or `~`. The stack must work with Node
+  22.12; if anything needs a newer Node, flag it before changing anything.
 A guard test asserts that `core/` imports no HTTP client, no FastAPI, no
 pdfplumber, and no python-docx, that a `core` import works without the adapter
 modules loaded, and that `core/` performs no file I/O. A required test loads

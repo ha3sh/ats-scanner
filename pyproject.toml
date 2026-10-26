@@ -30,6 +30,8 @@ build-backend = "uv_build"
 
 [project.scripts]
 ats = "ats_scanner.__main__:main"
+ats-build = "ats_scanner.tooling:main"
+ats-dev = "ats_scanner.tooling:dev_main"
 
 [tool.uv]
 package = true
