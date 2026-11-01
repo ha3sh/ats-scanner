@@ -20,6 +20,7 @@ class ErrorCode(StrEnum):
     TOO_MANY_PAGES = "too_many_pages"
     ENCRYPTED_PDF = "encrypted_pdf"
     NO_EXTRACTABLE_TEXT = "no_extractable_text"
+    BAD_PDF = "bad_pdf"
     BAD_DOCX = "bad_docx"
     JD_TOO_SHORT = "jd_too_short"
     JD_TOO_LONG = "jd_too_long"

@@ -32,6 +32,7 @@ ERROR_STATUSES: dict[ErrorCode, int] = {
     ErrorCode.TOO_MANY_PAGES: 422,
     ErrorCode.ENCRYPTED_PDF: 422,
     ErrorCode.NO_EXTRACTABLE_TEXT: 422,
+    ErrorCode.BAD_PDF: 422,
     ErrorCode.BAD_DOCX: 422,
     ErrorCode.JD_TOO_SHORT: 422,
     ErrorCode.JD_TOO_LONG: 422,

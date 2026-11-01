@@ -292,6 +292,7 @@ All endpoints are local. The server binds to `127.0.0.1` only.
 | `too_many_pages` | 422 | Over 10 pages |
 | `encrypted_pdf` | 422 | Password-protected |
 | `no_extractable_text` | 422 | Scanned or empty document |
+| `bad_pdf` | 422 | Corrupt or unreadable PDF |
 | `bad_docx` | 422 | Malformed DOCX, invalid ZIP/OOXML, or uncompressed size over the cap |
 | `jd_too_short` | 422 | JD under the minimum length |
 | `jd_too_long` | 422 | JD over 20k characters |
