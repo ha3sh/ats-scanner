@@ -12,15 +12,17 @@ eval-harness skeleton by Day 4, more fixtures every day, final pass on Day 10.
 Wording rule: no vendor names in the UI and the headline is never called an
 "ATS score" — see docs/PRODUCT_PLAN.md.
 
-Day 1 is **in progress**: the project skeleton and tooling exist; the health
-endpoint, error envelope, launcher, and minimal frontend shell remain.
+Day 1 is **done**: skeleton and tooling, `/api/health`, error envelope, `ats`
+launcher, minimal frontend shell served from `src/ats_scanner/static`, and CI —
+green on ubuntu-latest and windows-latest (Python 3.12). Day 2 is
+**in progress**.
 
 ## Ten days
 
 | Day | Work | Exit criterion |
 | --- | --- | --- |
-| 1 (in progress) | REMAINS: `/api/health` (versions + limits), unified error envelope, the `ats` launcher (bind 127.0.0.1, open browser), minimal frontend shell served from `src/ats_scanner/static`, CI workflow moved to this day: GitHub Actions running `uv run poe check` on push and PRs | `uv run ats` serves the shell; `/api/health` answers; designed errors render in one envelope; CI green on ubuntu-latest and windows-latest (Python 3.12); `uv run poe check` passes |
-| 2 | In-memory PDF/DOCX extraction in `adapters/extract.py`; signature validation, DOCX uncompressed-size cap, page count before text extraction; raw text on screen under the "What the ATS sees" tab (with its caption); first synthetic fixtures (hand-made, exported from a word processor) — nothing more | Upload → raw extracted text on screen; wrong-signature and oversized files rejected with the right codes |
+| 1 (done) | Skeleton, tooling, `/api/health` (versions + limits), unified error envelope, the `ats` launcher (bind 127.0.0.1, open browser), minimal frontend shell served from `src/ats_scanner/static`, CI workflow: GitHub Actions running `uv run poe check` on push and PRs | `uv run ats` serves the shell; `/api/health` answers; designed errors render in one envelope; CI green on ubuntu-latest and windows-latest (Python 3.12); `uv run poe check` passes |
+| 2 (in progress) | In-memory PDF/DOCX extraction in `adapters/extract.py`; signature validation, DOCX uncompressed-size cap, page count before text extraction; raw text on screen under the "What the ATS sees" tab (with its caption); first synthetic fixtures (hand-made, exported from a word processor) — nothing more | Upload → raw extracted text on screen; wrong-signature and oversized files rejected with the right codes |
 | 3 | Paper/ink design tokens (paper `#F7F5F0`, ink, vermilion/teal); row-order and column-order views, each captioned "possible extractor outputs"; sections and contact parsing | Two orders render side by side from the same file; sections/contact correct on fixtures; tokens applied app-wide |
 | 4 | Eval-harness skeleton (fixtures → pipeline → expected results, one `*.expected.json` beside each fixture asserting a defined subset — section names found, finding ids, coverage numerator/denominator — never the whole report); page/paragraph mapping; `tests/fixtures/report.sample.json` validated against the Pydantic report models | Harness runs and fails loudly on fixture changes; sample report validates, so the UI can keep building against it |
 | 5 | JD-cleaning diff view (before/after boilerplate strip); term extraction; tech dictionary at `src/ats_scanner/data/dictionary.json` with load-and-validate test | JD diff renders; term list sane on new fixtures; dictionary test passes |

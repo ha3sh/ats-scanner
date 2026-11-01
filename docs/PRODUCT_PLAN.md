@@ -35,12 +35,12 @@ system does.
 ## Tier 1 — one resume + one pasted JD, v1 (~10 working days)
 
 Each day's feature is visible in the UI the same day (vertical slices). Fixtures
-and eval-harness work is test-first and grows daily from Day 2. Day 1 is in
-progress: only the bullet "skeleton and tooling" below is done.
+and eval-harness work is test-first and grows daily from Day 2. Day 1 is done
+(CI green on ubuntu-latest and windows-latest). Day 2 is in progress.
 
 | Day | Feature | One line | Effort |
 | --- | --- | --- | --- |
-| 1 (in progress) | Launcher, shell, health, error envelope, CI | DONE: uv skeleton, deps, poe tasks, pre-commit, guard test, MCP/skills config. REMAINS: `/api/health`, unified error envelope, the `ats` launcher (bind 127.0.0.1, open browser), minimal frontend shell served from `src/ats_scanner/static`, and the CI workflow (GitHub Actions, ubuntu-latest and windows-latest, Python 3.12, `uv run poe check` on push and PRs) | M |
+| 1 (done) | Launcher, shell, health, error envelope, CI | DONE: uv skeleton, deps, poe tasks, pre-commit, guard test, `/api/health`, error envelope, `ats` launcher, minimal frontend shell, CI workflow — CI green on ubuntu-latest and windows-latest (Python 3.12), `uv run poe check` passes | M |
 | 2 | Extraction + "What the ATS sees" | In-memory PDF/DOCX extraction with signature/page validation; raw extracted text on screen under the ATS tab; first synthetic fixtures (hand-made, exported from a word processor) — nothing more | M |
 | 3 | Paper/ink design tokens + row/column order views | Design tokens (paper `#F7F5F0`, ink, vermilion/teal accents) land no later than Day 3; the page rendered in document row order and column-clustered order, each captioned "possible extractor outputs" | M |
 | 4 | Sections & contact + eval harness skeleton | Section/contact/page-paragraph mapping visible in the report; eval harness skeleton runs the pipeline over fixtures and compares to expected results; `tests/fixtures/report.sample.json` validates | M |
