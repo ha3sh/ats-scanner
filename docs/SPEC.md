@@ -289,7 +289,7 @@ All endpoints are local. The server binds to `127.0.0.1` only.
 | --- | --- | --- |
 | `unsupported_type` | 415 | Not PDF or DOCX, or signature does not match |
 | `too_large` | 413 | Over 5 MB |
-| `too_many_pages` | 422 | Over 10 pages |
+| `too_many_pages` | 422 | Over 10 pages. PDF: the real page count, checked before text extraction. DOCX: the `<Pages>` value in docProps/app.xml — a best-effort hint only, because DOCX has no real pages (flowing content); when the hint is absent it cannot fire |
 | `encrypted_pdf` | 422 | Password-protected |
 | `no_extractable_text` | 422 | Scanned or empty document |
 | `bad_pdf` | 422 | Corrupt or unreadable PDF |

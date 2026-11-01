@@ -1,26 +1,37 @@
-"""In-memory PDF extraction: validation order, happy path, no file writes."""
+"""In-memory extraction (PDF + DOCX + dispatcher): validation, happy path, no writes."""
 
 import builtins
 import io
 import tempfile
+import zipfile
 from pathlib import Path
 
+import docx
 import pytest
 
-from ats_scanner.adapters.extract import PdfplumberExtractor
-from ats_scanner.config import MAX_FILE_BYTES, MAX_PAGES
+from ats_scanner.adapters.extract import SignatureRoutedExtractor, read_bounded
+from ats_scanner.config import (
+    MAX_DOCX_ENTRIES,
+    MAX_DOCX_UNCOMPRESSED_BYTES,
+    MAX_FILE_BYTES,
+    MAX_PAGES,
+)
 from ats_scanner.core.documents import ExtractedDocument
 from ats_scanner.core.errors import AppError
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "resumes" / "resume_simple.pdf"
+DOCX_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "resumes" / "resume_simple.docx"
 
 EN_DASH = "\u2013"  # used in date ranges and separators in the fixture
 BULLET = "\u2022"  # used in list lines
 REPLACEMENT_CHAR = "\ufffd"  # mojibake marker that must never leak into text
 
+SECTION_HEADINGS = ("Summary", "Experience", "Education", "Skills")
+
 
 def extract(data: bytes) -> ExtractedDocument:
-    return PdfplumberExtractor().extract(data, "resume.pdf", "application/pdf")
+    """Route the bytes by signature, exactly as the production path will."""
+    return SignatureRoutedExtractor().extract(data, "resume.bin", "application/octet-stream")
 
 
 def build_pdf(page_count: int, text: str = "Alex Example") -> bytes:
@@ -124,10 +135,120 @@ def test_text_file_without_signature_is_unsupported() -> None:
     assert excinfo.value.code == "unsupported_type"
 
 
-def test_zip_signature_file_is_unsupported_until_docx_exists() -> None:
+def test_zip_signature_bytes_that_are_not_a_zip_are_bad_docx() -> None:
+    """DOCX support now exists, so the PK signature routes to the DOCX path."""
     with pytest.raises(AppError) as excinfo:
         extract(b"PK\x03\x04" + b"\x00" * 100)
+    assert excinfo.value.code == "bad_docx"
+
+
+def test_dispatcher_routes_by_signature_not_metadata() -> None:
+    assert extract(FIXTURE.read_bytes()).method == "pdfplumber"
+    assert extract(DOCX_FIXTURE.read_bytes()).method == "python-docx"
+
+
+# --- DOCX limits -----------------------------------------------------------
+
+
+def test_docx_limits_have_the_locked_values() -> None:
+    assert MAX_DOCX_UNCOMPRESSED_BYTES == 25 * 1024 * 1024
+    assert MAX_DOCX_ENTRIES == 1000
+
+
+def test_bounded_read_stops_above_the_cap() -> None:
+    stream = io.BytesIO(b"\x00" * (MAX_DOCX_UNCOMPRESSED_BYTES + 1))
+    with pytest.raises(AppError) as excinfo:
+        read_bounded(stream, MAX_DOCX_UNCOMPRESSED_BYTES)
+    assert excinfo.value.code == "bad_docx"
+
+
+def make_zip(entries: dict[str, bytes]) -> bytes:
+    """A real ZIP archive built with plain stdlib zipfile."""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, content in entries.items():
+            archive.writestr(name, content)
+    return buffer.getvalue()
+
+
+def test_docx_happy_path_extracts_the_fixture() -> None:
+    document = extract(DOCX_FIXTURE.read_bytes())
+    assert document.method == "python-docx"
+    row_text = document.pages[0].row_text
+    assert "Alex Example" in row_text
+    assert "alex@example.com" in row_text
+    assert "March 2021" in row_text
+    assert "PostgreSQL" in row_text
+    positions = [row_text.index(heading) for heading in SECTION_HEADINGS]
+    assert positions == sorted(positions)
+
+
+def test_docx_is_one_page_with_column_order_unfilled() -> None:
+    document = extract(DOCX_FIXTURE.read_bytes())
+    assert len(document.pages) == 1
+    assert document.pages[0].column_text is None
+
+
+def test_pk_bytes_with_a_broken_zip_are_bad_docx() -> None:
+    packed = make_zip({"word/document.xml": b"<doc/>"})[:-40]  # truncated central dir
+    with pytest.raises(AppError) as excinfo:
+        extract(packed)
+    assert excinfo.value.code == "bad_docx"
+
+
+def test_zip_without_document_xml_is_unsupported() -> None:
+    packed = make_zip({"[Content_Types].xml": b"<Types/>", "sheets/sheet1.xml": b"<s/>"})
+    with pytest.raises(AppError) as excinfo:
+        extract(packed)
     assert excinfo.value.code == "unsupported_type"
+
+
+def test_zip_bomb_is_rejected_without_full_decompression() -> None:
+    bomb = make_zip(
+        {
+            "word/document.xml": b"\x00" * (MAX_DOCX_UNCOMPRESSED_BYTES + 1),
+        }
+    )
+    assert len(bomb) < 1024 * 1024  # the archive itself is tiny
+    with pytest.raises(AppError) as excinfo:
+        extract(bomb)
+    assert excinfo.value.code == "bad_docx"
+
+
+def test_too_many_zip_entries_is_bad_docx() -> None:
+    names = {f"docx-junk/part{index:04d}.xml": b"<x/>" for index in range(1001)}
+    packed = make_zip(names)
+    with pytest.raises(AppError) as excinfo:
+        extract(packed)
+    assert excinfo.value.code == "bad_docx"
+
+
+def make_docx_with_pages_hint(pages: int) -> bytes:
+    """A valid python-docx package whose app.xml re-added with a Pages hint.
+
+    python-docx generates the body live so the package is genuinely OOXML.
+    """
+    package = io.BytesIO()
+    native = docx.Document()
+    native.add_paragraph("Alex Example")
+    native.save(package)
+    entries: dict[str, bytes] = {}
+    with zipfile.ZipFile(package) as archive:
+        entries = {name: archive.read(name) for name in archive.namelist()}
+    entries["docProps/app.xml"] = f"<Properties><Pages>{pages}</Pages></Properties>".encode("ascii")
+    return make_zip(entries)
+
+
+def test_docx_pages_hint_above_max_is_too_many_pages() -> None:
+    with pytest.raises(AppError) as excinfo:
+        extract(make_docx_with_pages_hint(200))
+    assert excinfo.value.code == "too_many_pages"
+
+
+def test_docx_pages_hint_below_max_does_not_block() -> None:
+    document = extract(make_docx_with_pages_hint(2))
+    assert document.method == "python-docx"
+    assert "Alex Example" in document.pages[0].row_text
 
 
 def test_truncated_pdf_is_bad_pdf() -> None:
@@ -176,8 +297,14 @@ def test_encrypted_pdf_maps_to_encrypted_pdf(monkeypatch: pytest.MonkeyPatch) ->
     assert excinfo.value.code == "encrypted_pdf"
 
 
-def test_extractor_never_creates_files(monkeypatch: pytest.MonkeyPatch) -> None:
-    data = FIXTURE.read_bytes()
+@pytest.mark.parametrize(
+    ("fixture_path", "expected_method"),
+    [(FIXTURE, "pdfplumber"), (DOCX_FIXTURE, "python-docx")],
+)
+def test_extractor_never_creates_files(
+    monkeypatch: pytest.MonkeyPatch, fixture_path: Path, expected_method: str
+) -> None:
+    data = fixture_path.read_bytes()
 
     def refuse(*args: object, **kwargs: object) -> object:
         raise AssertionError("the extractor must not touch the filesystem")
@@ -195,3 +322,4 @@ def test_extractor_never_creates_files(monkeypatch: pytest.MonkeyPatch) -> None:
 
     document = extract(data)
     assert document.char_count > 0
+    assert document.method == expected_method
