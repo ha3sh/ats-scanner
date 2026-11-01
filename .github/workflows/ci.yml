@@ -1,0 +1,37 @@
+# CI for ats-scanner. No Node/npm: the built frontend is committed and the
+# tests never run npm.
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: poe check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7.0.1
+
+      - name: Install uv and set up Python 3.12
+        uses: astral-sh/setup-uv@v10.3.2
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install the locked project
+        run: uv sync --locked
+
+      - name: Lint, type-check, test
+        run: uv run poe check
