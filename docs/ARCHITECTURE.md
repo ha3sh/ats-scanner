@@ -222,3 +222,17 @@ Schema changes require bumping `schema_version`. The report also carries
 - The Vite build clears `outDir` before writing. Never run `uv run ats-build`
   while the server is running, or the running app will 404 the assets it was
   serving.
+- Upload spooling decision (SPEC §6): Starlette 1.9's `MultiPartParser` rolls a
+  file part to a real temp file on disk once it exceeds the class attribute
+  `spool_max_size` (default 1 MB), and `Request.form()` does not forward that
+  value — the class attribute is the only knob. We set
+  `MultiPartParser.spool_max_size` to MAX_FILE_BYTES + a 64 KB multipart
+  framing allowance, exactly the cap our body-limit middleware enforces. A
+  pure-ASGI `CapBodyMiddleware` rejects any `/api/analyze` body above that
+  cap — via the Content-Length header before parsing, and by reading and
+  discarding mid-flight for chunked bodies with no Content-Length — so every
+  accepted upload is smaller than the spool threshold and stays entirely in
+  RAM. A pytest proves it by banning `tempfile.TemporaryFile` and write-mode
+  (builtins.open) around a ~2 MB upload. Changing either side alone would
+  break the guarantee: the threshold hides the worst case the body cap lets
+  through, and the body cap bounds what the threshold must hold.

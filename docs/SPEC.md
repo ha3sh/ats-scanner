@@ -251,7 +251,7 @@ All endpoints are local. The server binds to `127.0.0.1` only.
 | Endpoint | Method | Purpose |
 | --- | --- | --- |
 | `/api/health` | GET | Version, engine version, dictionary version, limits |
-| `/api/analyze` | POST | Multipart `resume` file plus form field `job_description`; returns the report |
+| `/api/analyze` | POST | Multipart file field `resume`; returns the report. No `job_description` form field yet — it joins on Day 5 with JD cleaning |
 
 ### File validation
 
@@ -259,6 +259,9 @@ All endpoints are local. The server binds to `127.0.0.1` only.
   begin with the PDF header; DOCX must be a ZIP (`PK` signature) containing a
   valid OOXML package.
 - Cap the **uncompressed size** of a DOCX. Beyond the cap, return `bad_docx`.
+- The DOCX page count comes from the `<Pages>` value in `docProps/app.xml` —
+  a best-effort hint only, because DOCX has no real pages; if the hint is
+  absent, `too_many_pages` cannot fire for DOCX.
 - Check the **page count before extracting text**, so an oversized PDF fails
   fast with `too_many_pages`.
 - A signature or structure mismatch is rejected even when the extension and
@@ -266,8 +269,15 @@ All endpoints are local. The server binds to `127.0.0.1` only.
 
 ### Report shape
 
+Implemented today (later pipeline days extend it):
+
 - `schema_version`, `engine_version`, `dictionary_version`
-- `meta`: filename, size, pages, extraction method, duration, warnings
+- `meta`: filename, size_bytes, page_count, method, duration_ms, warnings
+- `extracted_text`: pages with page_number, row_text, column_text, char_count,
+  method, warnings
+
+Remaining for later days:
+
 - `verdict`: one-line sentence
 - `score`: weighted percentage, covered weight, total weight, required
   {covered, total}, other {covered, total}, definition
@@ -280,7 +290,6 @@ All endpoints are local. The server binds to `127.0.0.1` only.
 - `suggestions[]`: finding id, text
 - `alignment`: title, seniority, experience — informational, separate from
   `score`
-- `extracted_text`: pages with text, character count, method, warnings
 - `disclaimers`
 
 ### Error codes
