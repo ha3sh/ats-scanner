@@ -29,6 +29,9 @@ src/
       ports.py                 Extractor, TermExtractor, SuggestionProvider
       documents.py             extracted-document model shared with adapters
                                (row-order and column-order text)
+      layout.py                column-order detection: a pure two-column
+                               heuristic over word boxes; returns None on
+                               weak evidence (see SPEC §4)
       errors.py                SPEC §5 error codes and AppError (no FastAPI;
                                adapters and core raise it, api translates it)
       sections.py              section and contact detection

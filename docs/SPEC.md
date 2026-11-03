@@ -236,6 +236,16 @@ plain-text extraction; no claim is made about how any specific system reads a
 file. When the two orders differ materially, a layout finding records it and
 the interleaved row-order text is the evidence.
 
+Column-order detection (pure `core/layout.py`, PDFs only in v1) is a
+conservative two-column heuristic over word boxes: at most two columns; a
+gutter that is at least 3% of the page width, carries no word at all, and has
+substantial text on both sides (at least 25% of the words and at least 5
+lines per side); full-width lines above the first column line are read first
+as a header, then the left column, then the right. Every doubt — few words,
+narrow or crossed gutter, third-column evidence, header lines that do not
+span the gutter — returns None, and the page keeps the row order only. When a
+page has no column order, the result view notes "Same order for this file."
+
 ### JD-cleaning transparency
 
 The report includes the JD as pasted and the JD after boilerplate cleaning, so

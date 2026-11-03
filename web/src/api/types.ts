@@ -1,8 +1,10 @@
 // Hand-written API types for the report and error envelope.
 // Replaced by generated types from the OpenAPI document on Day 8.
 
+export type ExtractionWarningCode = "columns_suspected";
+
 export type ExtractionWarning = {
-  code: string;
+  code: ExtractionWarningCode;
   message: string;
   page: number | null;
 };
