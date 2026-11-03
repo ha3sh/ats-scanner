@@ -1,1 +1,54 @@
+/* Paper & ink design tokens (docs/ARCHITECTURE.md "Visual direction").
+   Fonts are bundled locally via @fontsource — no CDN, no runtime network.
+   v1 is English-only: only the Latin subset, only weights actually used
+   (grep App.tsx: default 400, italic 400 caption, font-medium 500,
+   font-semibold 600; serif 600 headings; mono 400):
+     IBM Plex Serif 600    latin-600
+     IBM Plex Sans 400     latin-400 (UI text)
+     IBM Plex Sans 400i    latin-400-italic (caption)
+     IBM Plex Sans 500     latin-500 (font-medium label + button)
+     IBM Plex Sans 600     latin-600 (font-semibold "Error" label)
+     IBM Plex Mono 400     latin-400 (extracted document text)
+*/
+
+@import "@fontsource/ibm-plex-serif/latin-600.css";
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-400-italic.css";
+@import "@fontsource/ibm-plex-sans/latin-500.css";
+@import "@fontsource/ibm-plex-sans/latin-600.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
 @import "tailwindcss";
+
+@theme {
+  /* Ink on paper. Every text pair below is >= 4.5:1 on paper (reported). */
+  --color-paper: #f7f5f0;
+  --color-paper-dim: #efe9dd;
+  --color-ink: #14130f;
+  --color-muted: #55503f;
+  --color-rule: #dcd6c8;
+  --color-vermilion: #a93b26;
+  --color-teal: #1f6e5f;
+
+  --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+}
+
+/* Motion is minimal (120–180 ms); this lifts even that for people who opt out. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

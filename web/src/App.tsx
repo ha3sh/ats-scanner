@@ -156,26 +156,36 @@ export default function App() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl p-8">
-      <h1 className="text-2xl font-semibold">ats-scanner</h1>
-      <p className="mt-1">
-        Compares a resume against a job description on your machine and shows the
-        evidence.
-      </p>
-      <p className="mt-2 text-sm" role="status">
-        {backend.state === "checking" && "Checking backend…"}
-        {backend.state === "ready" && `Backend version ${backend.version}`}
-        {backend.state === "unreachable" &&
-          "Backend not reachable. Start it with `uv run ats` and reload."}
-      </p>
+    <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
+      {/* Title block */}
+      <header>
+        <h1 className="font-serif text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+          ats-scanner
+        </h1>
+        <p className="mt-3 max-w-prose text-muted">
+          Compares a resume against a job description on your machine and shows the
+          evidence.
+        </p>
+        <p className="mt-2 text-sm text-muted" role="status">
+          {backend.state === "checking" && "Checking backend\u2026"}
+          {backend.state === "ready" && `Backend version ${backend.version}`}
+          {backend.state === "unreachable" &&
+            "Backend not reachable. Start it with `uv run ats` and reload."}
+        </p>
+      </header>
 
-      <form onSubmit={(event) => void submit(event)} className="mt-6">
+      <form
+        onSubmit={(event) => void submit(event)}
+        className="mt-10 border-t border-rule pt-10"
+      >
+        {/* Drop zone: dashed hairline target; the keyboard focus ring is 2 px,
+            offset, and ink-adjacent in shape/size, so it is never colour alone. */}
         <div
           onDragOver={(event) => event.preventDefault()}
           onDrop={onDrop}
-          className="rounded border border-dashed border-gray-400 p-6"
+          className="rounded-sm border border-dashed border-muted bg-paper p-6 transition-colors duration-150 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink"
         >
-          <label htmlFor="resume-file" className="block font-medium">
+          <label htmlFor="resume-file" className="block font-medium text-ink">
             Resume: one PDF or DOCX file
           </label>
           <input
@@ -183,60 +193,69 @@ export default function App() {
             name="resume"
             type="file"
             accept={ACCEPT}
-            className="mt-2 block cursor-pointer"
+            className="mt-3 block w-full cursor-pointer text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             onChange={(event) => pickFile(event.target.files?.[0] ?? null)}
           />
-          <p className="mt-2 text-sm">You can also drop the file here.</p>
+          <p className="mt-3 text-sm text-muted">You can also drop the file here.</p>
         </div>
 
-        <p className="mt-2 text-sm">
+        <p className="mt-4 text-sm text-muted">
           Maximum size: 5 MB. {file !== null && `${file.name}, ${Math.ceil(file.size / 1024)} KB`}
         </p>
-        <p className="mt-1 text-sm">
+        <p className="mt-1 text-sm text-muted">
           Your resume is processed on this computer and is not saved.
         </p>
 
         <button
           type="submit"
           disabled={analyzing}
-          className="mt-4 rounded border px-4 py-2 font-medium disabled:opacity-50"
+          className="mt-8 rounded-sm bg-ink px-5 py-2.5 font-medium text-paper transition-opacity duration-150 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           Analyze locally
         </button>
       </form>
 
+      {/* Error alert: vermilion marker + icon + "Error" label, never colour alone. */}
       <p
         ref={alertRef}
         role="alert"
         tabIndex={-1}
         className={
           phase.state === "error"
-            ? "mt-4 rounded border p-3 text-sm focus:outline-2"
+            ? "mt-10 border-l-2 border-vermilion py-1 pl-4 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             : "hidden"
         }
       >
-        {phase.state === "error" ? phase.message : ""}
+        {phase.state === "error" && (
+          <>
+            <span aria-hidden="true" className="text-vermilion">
+              ⚠
+            </span>{" "}
+            <strong className="font-semibold text-vermilion">Error:</strong>{" "}
+            {phase.message}
+          </>
+        )}
       </p>
       {analyzing && (
-        <p className="mt-4 text-sm" aria-live="polite">
+        <p className="mt-10 text-sm text-muted" aria-live="polite">
           Analyzing locally… {Math.floor(elapsedMs / 1000)} s
         </p>
       )}
 
       {phase.state === "report" && (
-        <section className="mt-8">
+        <section className="mt-10 border-t border-rule pt-10">
           <h2
             ref={resultHeadingRef}
             tabIndex={-1}
-            className="focus:outline-2"
+            className="font-serif text-2xl font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             What the ATS sees
           </h2>
-          <p className="mt-1 text-sm italic">
+          <p className="mt-1 text-sm italic text-muted">
             Plain-text extraction, the way many parsers read a file. Real systems
             differ.
           </p>
-          <p className="mt-2 text-sm">
+          <p className="mt-4 text-sm text-muted">
             {phase.report.meta.filename} · {phase.report.meta.page_count}{" "}
             {phase.report.meta.page_count === 1 ? "page" : "pages"} ·{" "}
             {phase.report.meta.method} ·{" "}
@@ -244,7 +263,7 @@ export default function App() {
             {phase.report.meta.duration_ms} ms
           </p>
           {/* column_text is intentionally not rendered yet (Day 3 shows both orders). */}
-          <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded border p-4 font-mono text-xs">
+          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-sm border border-rule bg-paper-dim p-4 font-mono text-sm leading-relaxed text-ink [overflow-wrap:anywhere]">
             {phase.report.extracted_text.pages
               .map((page) => `Page ${page.page_number}\n${page.row_text}`)
               .join("\n\n")}
