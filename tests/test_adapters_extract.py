@@ -16,7 +16,7 @@ from ats_scanner.config import (
     MAX_FILE_BYTES,
     MAX_PAGES,
 )
-from ats_scanner.core.documents import ExtractedDocument
+from ats_scanner.core.documents import ExtractedDocument, WarningCode
 from ats_scanner.core.errors import AppError
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "resumes" / "resume_simple.pdf"
@@ -99,7 +99,108 @@ def test_happy_path_extracts_the_fixture() -> None:
     assert "Alex Example" in row_text
     assert "alex@example.com" in row_text
     assert document.pages[0].column_text is None
+    assert document.warnings == ()  # single column: no columns_suspected
     assert document.char_count == len(row_text)
+
+
+def build_two_column_pdf() -> bytes:
+    """A one-page PDF with a full-width header line and two columns of text.
+
+    Positioning uses absolute Td (a fresh text object starts at the origin,
+    so 72 710 Td is exactly the point the existing build_pdf relies on).
+    Left column at x=72, right column at x=340: the empty band between the
+    widest left word (~237) and the right column is ~17% of the 612 pt page.
+    """
+    header = "Full width header across the gutter that separates the columns"
+    lines: list[tuple[int, int, str]] = [(72, 730, header)]
+    for row in range(1, 9):
+        y = 710 - (row - 1) * 15
+        lines.append((72, y, f"Left row {row} alpha beta gamma delta"))
+        lines.append((340, y, f"Right row {row} epsilon zeta eta theta"))
+
+    stream = " ".join(f"BT /F1 10 Tf {x} {y} Td ({text}) Tj ET" for x, y, text in lines).encode(
+        "ascii"
+    )
+
+    buffer = io.BytesIO()
+    buffer.write(b"%PDF-1.4\n")
+    objects: list[tuple[int, bytes]] = []
+    objects.append((1, b"<</Type/Catalog/Pages 2 0 R>>"))
+    objects.append((2, b"<</Type/Pages/Kids[3 0 R]/Count 1>>"))
+    objects.append(
+        (
+            3,
+            "<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R"
+            "/Resources<</Font<</F1 5 0 R>>>>>>".encode("ascii"),
+        )
+    )
+    objects.append(
+        (
+            4,
+            b"<</Length "
+            + str(len(stream)).encode("ascii")
+            + b">>stream\n"
+            + stream
+            + b"\nendstream",
+        )
+    )
+    objects.append((5, b"<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>"))
+
+    offsets: dict[int, int] = {}
+    for obj_number, content in objects:
+        offsets[obj_number] = buffer.tell()
+        buffer.write(f"{obj_number} 0 obj\n".encode("ascii"))
+        buffer.write(content)
+        buffer.write(b"\nendobj\n")
+
+    xref_position = buffer.tell()
+    buffer.write("xref\n0 6\n".encode("ascii"))
+    buffer.write(b"0000000000 65535 f \n")
+    for obj_number in range(1, 6):
+        buffer.write(f"{offsets[obj_number]:010d} 00000 n \n".encode("ascii"))
+    buffer.write(
+        f"trailer<</Size 6/Root 1 0 R>>\nstartxref\n{xref_position}\n%%EOF\n".encode("ascii")
+    )
+    return buffer.getvalue()
+
+
+def test_two_column_pdf_reported_in_row_order_interleaves() -> None:
+    document = extract(build_two_column_pdf())
+    assert document.method == "pdfplumber"
+    assert len(document.pages) == 1
+    lines = document.pages[0].row_text.splitlines()
+    assert "Full width header across the gutter that separates the columns" in lines[0]
+    # Row order interleaves: every visual line carries a left and a right
+    # fragment of the same printed row.
+    for row in range(1, 9):
+        assert f"Left row {row}" in lines[row]
+        assert f"Right row {row}" in lines[row]
+
+
+def test_two_column_pdf_reported_in_column_order_separates() -> None:
+    document = extract(build_two_column_pdf())
+    page = document.pages[0]
+    column_text = page.column_text
+    assert column_text is not None
+    # Column order separates: header first, then the full left block, then
+    # the full right block.
+    assert column_text.index("Full width header") < column_text.index("Left row 1")
+    order = [
+        column_text.index(marker)
+        for marker in (
+            "Left row 1",
+            "Left row 4",
+            "Left row 8",
+            "Right row 1",
+            "Right row 4",
+            "Right row 8",
+        )
+    ]
+    assert order == sorted(order), column_text
+    # The evidence for the two views: a warning names the page.
+    assert [(warning.code, warning.page) for warning in document.warnings] == [
+        (WarningCode.COLUMNS_SUSPECTED, 1)
+    ]
 
 
 def test_extraction_preserves_en_dashes_and_bullets_without_replacement_chars() -> None:

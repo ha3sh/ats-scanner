@@ -5,7 +5,12 @@ from collections.abc import Callable
 import pytest
 from pydantic import ValidationError
 
-from ats_scanner.core.documents import ExtractedDocument, ExtractedPage, ExtractionWarning
+from ats_scanner.core.documents import (
+    ExtractedDocument,
+    ExtractedPage,
+    ExtractionWarning,
+    WarningCode,
+)
 from ats_scanner.core.errors import AppError
 from ats_scanner.core.ports import Extractor
 
@@ -61,10 +66,12 @@ def test_pages_cannot_grow_after_creation() -> None:
 
 
 def test_warning_carries_code_sentence_and_optional_page() -> None:
-    warning = ExtractionWarning(code="columns_suspected", message="...", page=1)
-    bare = ExtractionWarning(code="emoji", message="...")
+    warning = ExtractionWarning(code=WarningCode.COLUMNS_SUSPECTED, message="...", page=1)
+    bare = ExtractionWarning(code=WarningCode.COLUMNS_SUSPECTED, message="...")
     assert warning.page == 1
     assert bare.page is None
+    # A StrEnum: behaves as its string value wherever the code ships.
+    assert warning.code == "columns_suspected"
 
 
 def test_empty_document_is_valid_but_has_zero_characters() -> None:

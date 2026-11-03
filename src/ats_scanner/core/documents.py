@@ -8,7 +8,16 @@ and other non-BMP characters count as one character, matching the
 frontend's `Array.from` helper.
 """
 
+from enum import StrEnum
+
 from pydantic import BaseModel, ConfigDict, Field, computed_field
+
+
+class WarningCode(StrEnum):
+    """Stable codes for layout warnings (SPEC §4); StrEnum so the JSON
+    report ships plain strings."""
+
+    COLUMNS_SUSPECTED = "columns_suspected"
 
 
 class ExtractionWarning(BaseModel):
@@ -16,7 +25,7 @@ class ExtractionWarning(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    code: str
+    code: WarningCode
     message: str
     page: int | None = None
     """1-based page the warning applies to; None when it spans the file."""

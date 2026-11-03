@@ -32,8 +32,14 @@ from ats_scanner.config import (
     MAX_FILE_BYTES,
     MAX_PAGES,
 )
-from ats_scanner.core.documents import ExtractedDocument, ExtractedPage
+from ats_scanner.core.documents import (
+    ExtractedDocument,
+    ExtractedPage,
+    ExtractionWarning,
+    WarningCode,
+)
 from ats_scanner.core.errors import AppError
+from ats_scanner.core.layout import WordBox, column_order
 from ats_scanner.core.ports import Extractor
 
 _PDF_SIGNATURE = b"%PDF-"
@@ -110,7 +116,35 @@ class PdfplumberExtractor:
                     raise _code_error("encrypted_pdf")
                 if len(pdf.pages) > MAX_PAGES:
                     raise _code_error("too_many_pages")
-                row_texts = [page.extract_text() or "" for page in pdf.pages]
+                row_texts: list[str] = []
+                column_texts: list[str | None] = []
+                warnings: list[ExtractionWarning] = []
+                for number, page in enumerate(pdf.pages, start=1):
+                    row_texts.append(page.extract_text() or "")
+                    boxes = [
+                        WordBox(
+                            text=word["text"],
+                            x0=word["x0"],
+                            x1=word["x1"],
+                            top=word["top"],
+                            bottom=word["bottom"],
+                        )
+                        for word in page.extract_words()
+                    ]
+                    column_text = None if not boxes else column_order(boxes, page.width)
+                    column_texts.append(column_text)
+                    if column_text is not None:
+                        warnings.append(
+                            ExtractionWarning(
+                                code=WarningCode.COLUMNS_SUSPECTED,
+                                message=(
+                                    f"Columns suspected on page {number}: the page may be "
+                                    "laid out in two columns. Column order is a best-effort "
+                                    "re-reading, row order is the extracted stream."
+                                ),
+                                page=number,
+                            )
+                        )
         except PDFPasswordIncorrect:
             raise _code_error("encrypted_pdf") from None
         except PdfminerException:
@@ -119,10 +153,15 @@ class PdfplumberExtractor:
         if any(text.strip() for text in row_texts):
             return ExtractedDocument(
                 pages=tuple(
-                    ExtractedPage(page_number=number + 1, row_text=text)
-                    for number, text in enumerate(row_texts)
+                    ExtractedPage(
+                        page_number=number + 1,
+                        row_text=row_text,
+                        column_text=column_text,
+                    )
+                    for number, (row_text, column_text) in enumerate(zip(row_texts, column_texts))
                 ),
                 method=_ATS_SEES_METHOD,
+                warnings=tuple(warnings),
             )
         raise _code_error("no_extractable_text")
 
