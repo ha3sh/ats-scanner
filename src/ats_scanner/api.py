@@ -32,6 +32,7 @@ from ats_scanner.config import (
     MAX_PAGES,
 )
 from ats_scanner.core.errors import AppError, ErrorCode
+from ats_scanner.core.pipeline import analyze as analyze_pipeline
 from ats_scanner.core.ports import Extractor
 from ats_scanner.core.report import (
     SCHEMA_VERSION,
@@ -265,6 +266,7 @@ def create_app(extractor: Extractor | None = None) -> FastAPI:
             size_bytes = len(data)
             content_type = resume.content_type or ""
             document = resolved_extractor.extract(data, filename, content_type)
+            pipeline = analyze_pipeline(document)
             duration_ms = int((time.perf_counter() - started) * 1000)
             report = AnalysisReport(
                 schema_version=SCHEMA_VERSION,
@@ -291,6 +293,9 @@ def create_app(extractor: Extractor | None = None) -> FastAPI:
                     method=document.method,
                     warnings=document.warnings,
                 ),
+                reading_order=pipeline.reading_order,
+                sections=pipeline.sections,
+                contact=pipeline.contact,
             )
             _log_result("ok", filename, size_bytes, duration_ms)
             return report

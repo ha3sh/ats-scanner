@@ -288,6 +288,14 @@ Implemented today (later pipeline days extend it):
 - `meta`: filename, size_bytes, page_count, method, duration_ms, warnings
 - `extracted_text`: pages with page_number, row_text, column_text, char_count,
   method, warnings
+- `reading_order`: per page, "column" when the page has column text, else
+  "row"
+- `sections`: always all seven (contact, summary, experience, education,
+  skills, projects, certifications, fixed order), each found or not with the
+  exact heading text, page and 1-based line number; "contact" is found when
+  an email or phone is detected, with heading text None
+- `contact`: email, phone, linkedin — each found or not with value, page and
+  line; values appear in the response only, never in logs
 
 Remaining for later days:
 
@@ -298,7 +306,6 @@ Remaining for later days:
   resume span
 - `terms.missing[]`: term, weight, JD context
 - `terms.near_misses[]`: term, found variant, distance, counted = false
-- `sections[]`: name, found, heading text
 - `findings[]`: id, severity, title, detail, evidence, location, fix
 - `suggestions[]`: finding id, text
 - `alignment`: title, seniority, experience — informational, separate from

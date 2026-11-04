@@ -1,15 +1,32 @@
 """Pydantic report models: the API response contract (SPEC §5 report shape).
 
-v1 for today's step: schema/versions, meta, and the extracted text the
-"What the ATS sees" tab shows. Later days extend with verdict, score,
+Grows with the pipeline: today schema/versions, meta, extracted text,
+reading order, sections and contact. Later days add verdict, score,
 terms, findings, alignment, suggestions, disclaimers.
 """
+
+from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from ats_scanner.core.documents import ExtractionWarning
 
 SCHEMA_VERSION: int = 1
+
+ReadingOrder = Literal["row", "column"]
+
+
+class SectionName(StrEnum):
+    """The seven sections, in the fixed report order (SPEC §4)."""
+
+    CONTACT = "contact"
+    SUMMARY = "summary"
+    EXPERIENCE = "experience"
+    EDUCATION = "education"
+    SKILLS = "skills"
+    PROJECTS = "projects"
+    CERTIFICATIONS = "certifications"
 
 
 class ReportMeta(BaseModel):
@@ -46,6 +63,41 @@ class ExtractedText(BaseModel):
     warnings: tuple[ExtractionWarning, ...] = ()
 
 
+class SectionFinding(BaseModel):
+    """One of the seven sections, found or not (SPEC §4 "Sections detected")."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: SectionName
+    found: bool
+    heading: str | None = None
+    """The exact heading line that triggered the match; None when absent."""
+    page: int | None = Field(default=None, ge=1)
+    line: int | None = Field(default=None, ge=1)
+    """1-based line in the page's chosen reading order."""
+
+
+class ContactItem(BaseModel):
+    """One contact detail: found or not, with value and location."""
+
+    model_config = ConfigDict(frozen=True)
+
+    found: bool
+    value: str | None = None
+    page: int | None = Field(default=None, ge=1)
+    line: int | None = Field(default=None, ge=1)
+
+
+class ContactInfo(BaseModel):
+    """Email, phone and LinkedIn, each independent."""
+
+    model_config = ConfigDict(frozen=True)
+
+    email: ContactItem
+    phone: ContactItem
+    linkedin: ContactItem
+
+
 class AnalysisReport(BaseModel):
     """The response of POST /api/analyze; grows with the pipeline."""
 
@@ -56,3 +108,8 @@ class AnalysisReport(BaseModel):
     dictionary_version: int
     meta: ReportMeta
     extracted_text: ExtractedText
+    reading_order: tuple[ReadingOrder, ...]
+    """Per page: "column" when the page has column text, else "row"."""
+    sections: tuple[SectionFinding, ...]
+    """Always all seven sections, fixed order (SPEC §4)."""
+    contact: ContactInfo

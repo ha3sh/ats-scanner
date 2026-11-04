@@ -230,6 +230,20 @@ def test_logs_carry_metadata_only(caplog: pytest.LogCaptureFixture) -> None:
         assert "filename=" in message
 
 
+def test_contact_values_never_reach_the_logs(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO, logger="ats_scanner.api")
+    client = client_for(SignatureRoutedExtractor())
+    response = post_resume(client, PDF_FIXTURE.read_bytes(), "resume_simple.pdf", "application/pdf")
+    assert response.status_code == 200
+    contact = response.json()["contact"]
+    email = contact["email"]["value"]
+    phone = contact["phone"]["value"]
+    assert email and phone
+    joined = "\n".join(record.getMessage() for record in caplog.records)
+    assert email not in joined
+    assert phone not in joined
+
+
 def test_log_error_lines_carry_the_code_not_the_text(
     caplog: pytest.LogCaptureFixture,
 ) -> None:

@@ -9,6 +9,38 @@ export type ExtractionWarning = {
   page: number | null;
 };
 
+export type ReadingOrder = "row" | "column";
+
+export type SectionName =
+  | "contact"
+  | "summary"
+  | "experience"
+  | "education"
+  | "skills"
+  | "projects"
+  | "certifications";
+
+export type SectionFinding = {
+  name: SectionName;
+  found: boolean;
+  heading: string | null;
+  page: number | null;
+  line: number | null;
+};
+
+export type ContactItem = {
+  found: boolean;
+  value: string | null;
+  page: number | null;
+  line: number | null;
+};
+
+export type ContactInfo = {
+  email: ContactItem;
+  phone: ContactItem;
+  linkedin: ContactItem;
+};
+
 export type ReportMeta = {
   filename: string;
   size_bytes: number;
@@ -37,6 +69,9 @@ export type AnalysisReport = {
   dictionary_version: number;
   meta: ReportMeta;
   extracted_text: ExtractedText;
+  reading_order: ReadingOrder[];
+  sections: SectionFinding[];
+  contact: ContactInfo;
 };
 
 export type ErrorEnvelope = {
