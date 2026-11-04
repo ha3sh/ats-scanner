@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
 
-import type { AnalysisReport, ErrorEnvelope, Health } from "./api/types";
+import type {
+  AnalysisReport,
+  ContactItem,
+  ErrorEnvelope,
+  Health,
+  ReadingOrder,
+  SectionFinding,
+  SectionName,
+} from "./api/types";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // convenience mirror of the server limit
 
@@ -278,12 +286,56 @@ export default function App() {
       )}
 
       {phase.state === "report" && (
-        <section className="mt-10 border-t border-rule pt-10">
-          <h2
-            ref={resultHeadingRef}
-            tabIndex={-1}
-            className="font-serif text-2xl font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-          >
+        <>
+          <section className="mt-10 border-t border-rule pt-10">
+            <h2
+              ref={resultHeadingRef}
+              tabIndex={-1}
+              className="font-serif text-2xl font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              What the parser could find
+            </h2>
+            <p className="mt-1 text-sm italic text-muted">
+              Sections and contact details detected in the extracted text.
+            </p>
+            <p className="mt-4 text-sm text-muted">
+              {readingOrderSentence(phase.report.reading_order)}
+            </p>
+            <div className="mt-6 grid gap-6 min-[900px]:grid-cols-2">
+              <div>
+                <h3 className="font-semibold text-ink">Sections</h3>
+                <ul className="mt-2 list-none space-y-1 text-sm">
+                  {phase.report.sections.map((finding) => (
+                    <FindingRow
+                      key={finding.name}
+                      found={finding.found}
+                      label={sectionRowLabel(finding)}
+                    />
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold text-ink">Contact</h3>
+                <ul className="mt-2 list-none space-y-1 text-sm">
+                  <FindingRow
+                    found={phase.report.contact.email.found}
+                    label={contactRowLabel("Email", phase.report.contact.email)}
+                  />
+                  <FindingRow
+                    found={phase.report.contact.phone.found}
+                    label={contactRowLabel("Phone", phase.report.contact.phone)}
+                  />
+                  <FindingRow
+                    found={phase.report.contact.linkedin.found}
+                    label={contactRowLabel("LinkedIn", phase.report.contact.linkedin)}
+                  />
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-10 border-t border-rule pt-10">
+          <h2 className="font-serif text-2xl font-semibold text-ink">
             What the ATS sees
           </h2>
           <p className="mt-1 text-sm italic text-muted">
@@ -352,7 +404,8 @@ export default function App() {
               was detected.
             </p>
           )}
-        </section>
+          </section>
+        </>
       )}
     </main>
   );
@@ -370,4 +423,67 @@ function ExtractBlock({ heading, text }: { heading: string; text: string }) {
       </pre>
     </div>
   );
+}
+
+const SECTION_LABELS: Record<SectionName, string> = {
+  contact: "Contact",
+  summary: "Summary",
+  experience: "Experience",
+  education: "Education",
+  skills: "Skills",
+  projects: "Projects",
+  certifications: "Certifications",
+};
+
+// "Read in column order." when every page agrees, otherwise per page.
+function readingOrderSentence(order: ReadingOrder[]): string {
+  const first = order[0];
+  if (first !== undefined && order.every((entry) => entry === first)) {
+    return first === "column" ? "Read in column order." : "Read in row order.";
+  }
+  const parts = order.map((entry, index) => `${entry} order on page ${index + 1}`);
+  return `Read in ${parts.join(", ")}.`;
+}
+
+// Text-only rows: the words "found"/"not found" carry the state, the
+// aria-hidden symbol only repeats it, so colour is never the sole signal.
+function FindingRow({ found, label }: { found: boolean; label: string }) {
+  return (
+    <li className="flex gap-2">
+      <span
+        aria-hidden="true"
+        className={found ? "text-teal" : "text-muted"}
+      >
+        {found ? "✓" : "–"}
+      </span>
+      <span className={found ? "text-ink" : "text-muted"}>{label}</span>
+    </li>
+  );
+}
+
+function sectionRowLabel(finding: SectionFinding): string {
+  const name = SECTION_LABELS[finding.name];
+  if (!finding.found) {
+    return `${name} — not found`;
+  }
+  if (finding.heading === null) {
+    // The contact section has no heading; its details are in the Contact list.
+    return `${name} — found`;
+  }
+  const where =
+    finding.page !== null && finding.line !== null
+      ? ` (page ${finding.page}, line ${finding.line})`
+      : "";
+  return `${name} — found as "${finding.heading}"${where}`;
+}
+
+function contactRowLabel(name: string, item: ContactItem): string {
+  if (!item.found || item.value === null) {
+    return `${name} — not found`;
+  }
+  const where =
+    item.page !== null && item.line !== null
+      ? ` (page ${item.page}, line ${item.line})`
+      : "";
+  return `${name} — ${item.value}${where}`;
 }
