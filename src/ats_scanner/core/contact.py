@@ -7,7 +7,9 @@ Phone: a loose international matcher. A candidate is a maximal run of
 digits and phone punctuation (spaces, dots, dashes, en/em dashes,
 parentheses, a single leading plus) containing 9 to 15 digits in total,
 not glued to a longer alphanumeric token — so date ranges ("2014 -
-2018"), years, version strings ("3.12.4") and short numbers never match.
+2018"), years, version strings ("3.12.4") and short numbers never match;
+a candidate whose every digit group is a 4-digit number from 1900 to
+2100 is a run of year-like numbers ("2018 - 2020 2021"), not a phone.
 Email: trailing punctuation stripped. LinkedIn: scheme and "www."
 stripped, trailing punctuation removed.
 """
@@ -54,8 +56,16 @@ def _phone_in(line: str) -> str | None:
         digits = sum(character.isdigit() for character in candidate)
         if not 9 <= digits <= 15:
             continue
+        if _all_year_like(candidate):
+            continue  # a run of year-like numbers, not a phone
         return candidate.strip().rstrip(_TRIM).lstrip(_TRIM)
     return None
+
+
+def _all_year_like(candidate: str) -> bool:
+    """True when every digit group is a 4-digit number from 1900 to 2100."""
+    groups = [group for group in re.split(r"\D+", candidate) if group]
+    return bool(groups) and all(len(group) == 4 and 1900 <= int(group) <= 2100 for group in groups)
 
 
 def _linkedin_in(line: str) -> str | None:

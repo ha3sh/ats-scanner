@@ -17,10 +17,26 @@ def test_email_found_with_trailing_punctuation_stripped() -> None:
 
 
 def test_phone_loose_international_formats() -> None:
-    for text in ("(555) 555-0100", "+1 (555) 555-0100", "555 555 0100", "+44 20 7946 0958"):
+    for text in (
+        "(555) 555-0100",
+        "+1 (555) 555-0100",
+        "555 555 0100",
+        "+44 20 7946 0958",
+        "+1 415 555 0132",
+    ):
         info = find_contact([text])
         assert info.phone.found, text
         assert info.phone.value is not None and info.phone.value.strip()
+
+
+def test_phone_rejects_runs_of_year_like_numbers() -> None:
+    for text in (
+        "2018 - 2020 2021",
+        "2019 2020 2021",
+        "Led 3 teams 2019 - 2021 and 2022",
+    ):
+        info = find_contact([text])
+        assert not info.phone.found, text
 
 
 def test_phone_rejects_dates_years_versions_and_short_numbers() -> None:
