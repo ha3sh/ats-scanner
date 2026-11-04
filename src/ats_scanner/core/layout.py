@@ -17,9 +17,12 @@ returns None:
   page's words (MIN_SIDE_WORD_FRACTION) and at least MIN_SIDE_LINES
   separate column lines.
 - Fewer than MIN_WORDS words on the page: no verdict at all.
-- Header: the lines above the topmost column line; each must span across
-  the gutter (extend past both of its edges). Reads first, then the left
-  column top to bottom, then the right.
+- Header: the lines above the topmost column line. Each qualifies when it
+  spans the gutter (extends past both edges) or is anchored on the left
+  (starts left of the gutter's right edge). A line that sits only on the
+  right side of the gutter cannot be placed with confidence and makes the
+  answer None. Reads first, then the left column top to bottom, then the
+  right.
 - Ragged overlap — any non-header word whose span crosses the gutter — is
   impossible inside a real gutter, so crossing words disqualify it. A
   qualifying second gutter inside either side would mean three or more
@@ -76,8 +79,8 @@ def column_order(words: Sequence[WordBox], page_width: float) -> str | None:
     convincingly columnar.
 
     Every doubt returns None: few words, no, narrow, or crossed gutter,
-    header lines that do not span the gutter, or more than two columns.
-    Text is never reordered on weak evidence.
+    header lines that sit only on the right of the gutter, or more than
+    two columns. Text is never reordered on weak evidence.
     """
     if page_width <= 0 or len(words) < MIN_WORDS:
         return None
@@ -87,13 +90,23 @@ def column_order(words: Sequence[WordBox], page_width: float) -> str | None:
         gutter = _best_gutter(body, page_width, SUB_GUTTER_CHECK_DEPTH)
         if gutter is None:
             continue
-        if header_count > 0 and not all(
-            line.x0 < gutter.x0 and line.x1 > gutter.x1 for line in header
-        ):
-            continue  # a header must span across the gutter
         body_words = [word for line in body for word in line.words]
         left_words = _side_words(body_words, gutter.x0, right=False)
         right_words = _side_words(body_words, gutter.x1, right=True)
+        left_lines = _lines(left_words)
+        if not left_lines:
+            continue
+        # The header is every line above the first column line (the top of
+        # the left column, which is read first). It must be exactly the
+        # prefix dropped above, and each of its lines must span the gutter
+        # or be anchored on the left — x0 left of the gutter's right edge.
+        # A right-only line above the columns is evidence we cannot place:
+        # None, never a guess.
+        columns_top = left_lines[0].top
+        if any(line.top < columns_top for line in body):
+            continue
+        if not all(line.x0 < gutter.x1 for line in header):
+            continue
         return _compose(lines[:header_count], left_words, right_words)
     return None
 

@@ -240,11 +240,14 @@ Column-order detection (pure `core/layout.py`, PDFs only in v1) is a
 conservative two-column heuristic over word boxes: at most two columns; a
 gutter that is at least 3% of the page width, carries no word at all, and has
 substantial text on both sides (at least 25% of the words and at least 5
-lines per side); full-width lines above the first column line are read first
-as a header, then the left column, then the right. Every doubt — few words,
-narrow or crossed gutter, third-column evidence, header lines that do not
-span the gutter — returns None, and the page keeps the row order only. When a
-page has no column order, the result view notes "Same order for this file."
+lines per side); lines above the first column line that span the gutter or
+are anchored on the left are read first as a header, then the left column,
+then the right. Every doubt — few words, narrow or crossed gutter,
+third-column evidence, header lines that sit only on the right of the
+gutter — returns None, and the page keeps the row order only. When a page
+has no column order, the result view notes "No column order produced for
+this page: no clear two-column layout was detected." — the detector
+abstaining, not proof that the page is single-column.
 
 ### JD-cleaning transparency
 

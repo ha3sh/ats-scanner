@@ -338,13 +338,19 @@ export default function App() {
                   )}
                 </div>
                 {!everyPageSameOrder && page.column_text === null && (
-                  <p className="mt-2 text-sm text-muted">Same order for this file.</p>
+                  <p className="mt-2 text-sm text-muted">
+                    No column order produced for this page: no clear two-column
+                    layout was detected.
+                  </p>
                 )}
               </article>
             ))}
           </div>
           {everyPageSameOrder && (
-            <p className="mt-4 text-sm text-muted">Same order for this file.</p>
+            <p className="mt-4 text-sm text-muted">
+              No column order produced for this page: no clear two-column layout
+              was detected.
+            </p>
           )}
         </section>
       )}

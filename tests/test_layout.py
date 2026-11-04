@@ -24,13 +24,37 @@ def header_words() -> list[WordBox]:
     ]
 
 
-def two_column_words(rows: int = 8, right_x: float = 340) -> list[WordBox]:
+def left_header_words() -> list[WordBox]:
+    """Sidebar-style header: a short left-aligned name line (54..185, does
+    not reach the gutter at 248) plus a wide contact line that spans it."""
+    return [
+        word("Sam", 54, 96, 30),
+        word("Sample", 100, 185, 30),
+        word("contact", 54, 150, 56),
+        word("line", 154, 300, 56),
+        word("across", 304, 560, 56),
+    ]
+
+
+def right_only_header_words() -> list[WordBox]:
+    """A header block that sits entirely on the right side of the gutter
+    (starts at 350, beyond the gutter's right edge at 340)."""
+    return [
+        word("Right", 350, 420, 30),
+        word("only", 424, 500, 30),
+        word("header", 504, 560, 30),
+    ]
+
+
+def two_column_words(
+    rows: int = 8, right_x: float = 340, header: list[WordBox] | None = None
+) -> list[WordBox]:
     """Header line, then paired rows: left column ends by x=248, right starts
     at `right_x` (340 by default), so the empty band between the columns is
     ~15% of the page width."""
-    words = header_words()
+    words = header if header is not None else header_words()
     for row in range(1, rows + 1):
-        top = 60 + (row - 1) * LINE_HEIGHT
+        top = 80 + (row - 1) * LINE_HEIGHT
         words += [
             word(f"Left-{row}", 72, 128, top),
             word("alpha", 132, 188, top),
@@ -76,6 +100,31 @@ def test_full_width_header_is_read_first() -> None:
     assert text is not None
     assert text.index("Full width header") < text.index("Left-1")
     assert text.index("Left-8") < text.index("Right-1")
+
+
+def test_centered_header_is_still_detected() -> None:
+    # Regression for the centered-header layout (resume_two_column.pdf):
+    # a header block that spans the gutter keeps working.
+    text = column_order(two_column_words(), PAGE_WIDTH)
+    assert text is not None
+    assert text.index("Full width header") < text.index("Left-1")
+
+
+def test_left_anchored_header_lines_are_accepted() -> None:
+    # Sidebar layout: the short name line does not reach across the gutter,
+    # but it starts left of the gutter's right edge, so it is a header.
+    text = column_order(two_column_words(header=left_header_words()), PAGE_WIDTH)
+    assert text is not None
+    assert text.index("Sam Sample") < text.index("Left-1")
+    assert text.index("contact line across") < text.index("Left-1")
+    assert text.index("Left-8") < text.index("Right-1")
+
+
+def test_right_only_header_line_is_rejected() -> None:
+    # A header line that starts at or beyond the gutter's right edge cannot
+    # be placed with confidence: the answer is None, never a guess.
+    text = column_order(two_column_words(header=right_only_header_words()), PAGE_WIDTH)
+    assert text is None
 
 
 def test_narrow_gutter_is_rejected() -> None:

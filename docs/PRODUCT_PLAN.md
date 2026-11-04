@@ -86,8 +86,9 @@ and eval-harness work is test-first and grows daily from Day 2. Day 1 is done
 
 - **DOCX column representation.** Table-cell-aware reading order; section and
   text-box breaks are the column signal. If a DOCX has no tables, text boxes,
-  or section columns, show one order with the note "Same order for this file"
-  instead of two identical-looking panels.
+  or section columns, show one order with the note "No column order produced
+  for this page: no clear two-column layout was detected" instead of two
+  identical-looking panels.
 - **CI.** GitHub Actions on ubuntu-latest and windows-latest, Python 3.12,
   running `uv run poe check` on push and pull requests; scheduled at the end of
   Day 1.

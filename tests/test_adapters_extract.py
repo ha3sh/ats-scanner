@@ -21,6 +21,10 @@ from ats_scanner.core.errors import AppError
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "resumes" / "resume_simple.pdf"
 DOCX_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "resumes" / "resume_simple.docx"
+TWO_COLUMN_FIXTURE = (
+    Path(__file__).resolve().parent / "fixtures" / "resumes" / "resume_two_column.pdf"
+)
+SIDEBAR_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "resumes" / "resume_sidebar.pdf"
 
 EN_DASH = "\u2013"  # used in date ranges and separators in the fixture
 BULLET = "\u2022"  # used in list lines
@@ -201,6 +205,42 @@ def test_two_column_pdf_reported_in_column_order_separates() -> None:
     assert [(warning.code, warning.page) for warning in document.warnings] == [
         (WarningCode.COLUMNS_SUSPECTED, 1)
     ]
+
+
+def test_two_column_fixture_is_still_detected() -> None:
+    document = extract(TWO_COLUMN_FIXTURE.read_bytes())
+    page = document.pages[0]
+    column_text = page.column_text
+    assert column_text is not None
+    lines = column_text.splitlines()
+    assert lines[0] == "Sam Sample"
+    # Sidebar ("Skills") before main ("Summary"), header first.
+    assert lines.index("Skills") < lines.index("Summary")
+    assert [(warning.code, warning.page) for warning in document.warnings] == [
+        (WarningCode.COLUMNS_SUSPECTED, 1)
+    ]
+
+
+def test_sidebar_fixture_is_detected_with_left_anchored_header() -> None:
+    document = extract(SIDEBAR_FIXTURE.read_bytes())
+    page = document.pages[0]
+    column_text = page.column_text
+    assert column_text is not None
+    assert [(warning.code, warning.page) for warning in document.warnings] == [
+        (WarningCode.COLUMNS_SUSPECTED, 1)
+    ]
+    lines = column_text.splitlines()
+    # The header block is read first, exactly as printed on the page.
+    assert lines[:3] == [
+        "Sam Sample",
+        "Data Engineer",
+        "sam@example.com | (555) 555-0142 | Springfield, USA",
+    ]
+    # Then the sidebar block, then the main block.
+    names = [line for line in lines if line.strip()]
+    assert names[3] == "Skills"
+    assert "Certifications" in names
+    assert names.index("Certifications") < names.index("Summary")
 
 
 def test_extraction_preserves_en_dashes_and_bullets_without_replacement_chars() -> None:
