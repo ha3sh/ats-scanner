@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "engine_version": "0.1.0",
+  "dictionary_version": 0,
+  "meta": {
+    "filename": "resume_sidebar.pdf",
+    "size_bytes": 2681,
+    "page_count": 1,
+    "method": "pdfplumber",
+    "duration_ms": 0,
+    "warnings": [
+      {
+        "code": "columns_suspected",
+        "message": "Columns suspected on page 1: the page may be laid out in two columns. Column order is a best-effort re-reading, row order is the extracted stream.",
+        "page": 1
+      }
+    ]
+  },
+  "extracted_text": {
+    "pages": [
+      {
+        "page_number": 1,
+        "row_text": "Sam Sample\nData Engineer\nsam@example.com | (555) 555-0142 | Springfield, USA\nSkills Summary\nPython, SQL, Bash Data engineer with six years of experience\nApache Airflow, dbt building reliable batch pipelines and\nPostgreSQL, Docker, Git reporting databases in Python and SQL.\npytest, CI/CD\nExperience\nEducation\nData Engineer, Sample Analytics Co.\nB.Sc. Computer Science\nApril 2020 - Present\nExample State University\n- Built Airflow pipelines that load daily\n2013 - 2017\ndata into a PostgreSQL warehouse.\nCertifications - Modeled reporting tables with dbt and\nadded tests for every critical metric.\nCloud Practitioner (2022)\n- Cut nightly run time by 40% through\nData Engineering Associate\nquery tuning and partitioning.\nLanguages\nJunior Analyst, Example Retail Ltd.\nEnglish, Spanish July 2017 - March 2020\n- Wrote SQL reports for the sales team.\nInterests\n- Automated weekly exports with Python.\nOpen source, hiking\n- Documented data sources for new staff.",
+        "column_text": "Sam Sample\nData Engineer\nsam@example.com | (555) 555-0142 | Springfield, USA\n\nSkills\nPython, SQL, Bash\nApache Airflow, dbt\nPostgreSQL, Docker, Git\npytest, CI/CD\nEducation\nB.Sc. Computer Science\nExample State University\n2013 - 2017\nCertifications\nCloud Practitioner (2022)\nData Engineering Associate\nLanguages\nEnglish, Spanish\nInterests\nOpen source, hiking\n\nSummary\nData engineer with six years of experience\nbuilding reliable batch pipelines and\nreporting databases in Python and SQL.\nExperience\nData Engineer, Sample Analytics Co.\nApril 2020 - Present\n- Built Airflow pipelines that load daily\ndata into a PostgreSQL warehouse.\n- Modeled reporting tables with dbt and\nadded tests for every critical metric.\n- Cut nightly run time by 40% through\nquery tuning and partitioning.\nJunior Analyst, Example Retail Ltd.\nJuly 2017 - March 2020\n- Wrote SQL reports for the sales team.\n- Automated weekly exports with Python.\n- Documented data sources for new staff."
+      }
+    ],
+    "char_count": 954,
+    "method": "pdfplumber",
+    "warnings": [
+      {
+        "code": "columns_suspected",
+        "message": "Columns suspected on page 1: the page may be laid out in two columns. Column order is a best-effort re-reading, row order is the extracted stream.",
+        "page": 1
+      }
+    ]
+  },
+  "reading_order": [
+    "column"
+  ],
+  "sections": [
+    {
+      "name": "contact",
+      "found": true,
+      "heading": null,
+      "page": null,
+      "line": null
+    },
+    {
+      "name": "summary",
+      "found": true,
+      "heading": "Summary",
+      "page": 1,
+      "line": 22
+    },
+    {
+      "name": "experience",
+      "found": true,
+      "heading": "Experience",
+      "page": 1,
+      "line": 26
+    },
+    {
+      "name": "education",
+      "found": true,
+      "heading": "Education",
+      "page": 1,
+      "line": 10
+    },
+    {
+      "name": "skills",
+      "found": true,
+      "heading": "Skills",
+      "page": 1,
+      "line": 5
+    },
+    {
+      "name": "projects",
+      "found": false,
+      "heading": null,
+      "page": null,
+      "line": null
+    },
+    {
+      "name": "certifications",
+      "found": true,
+      "heading": "Certifications",
+      "page": 1,
+      "line": 14
+    }
+  ],
+  "contact": {
+    "email": {
+      "found": true,
+      "value": "sam@example.com",
+      "page": 1,
+      "line": 3
+    },
+    "phone": {
+      "found": true,
+      "value": "(555) 555-0142",
+      "page": 1,
+      "line": 3
+    },
+    "linkedin": {
+      "found": false,
+      "value": null,
+      "page": null,
+      "line": null
+    }
+  }
+}

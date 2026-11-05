@@ -37,14 +37,14 @@ system does.
 Each day's feature is visible in the UI the same day (vertical slices). Fixtures
 and eval-harness work is test-first and grows daily from Day 2. Day 1 is done
 (CI green on ubuntu-latest and windows-latest). Days 2 and 3 are done. Day 4 is
-in progress.
+done (page/paragraph mapping is folded into Day 6, where evidence spans arrive).
 
 | Day | Feature | One line | Effort |
 | --- | --- | --- | --- |
 | 1 (done) | Launcher, shell, health, error envelope, CI | DONE: uv skeleton, deps, poe tasks, pre-commit, guard test, `/api/health`, error envelope, `ats` launcher, minimal frontend shell, CI workflow — CI green on ubuntu-latest and windows-latest (Python 3.12), `uv run poe check` passes | M |
 | 2 (done) | Extraction + "What the ATS sees" | In-memory PDF/DOCX extraction with signature/page validation; raw extracted text on screen under the ATS tab; first synthetic fixtures (hand-made, exported from a word processor) — nothing more | M |
 | 3 (done) | Paper/ink design tokens + row/column order views | Design tokens (paper `#F7F5F0`, ink, vermilion/teal accents) land no later than Day 3; the page rendered in document row order and column-clustered order, each captioned "possible extractor outputs" | M |
-| 4 (in progress) | Sections & contact + eval harness skeleton | Section/contact/page-paragraph mapping visible in the report; eval harness skeleton runs the pipeline over fixtures and compares to expected results; `tests/fixtures/report.sample.json` validates | M |
+| 4 (done) | Sections & contact + eval harness skeleton | Section/contact visible in the report (page/paragraph mapping folded into Day 6, where evidence spans arrive); eval harness skeleton runs the pipeline over fixtures and compares to expected results; `tests/fixtures/report.sample.json` validates | M |
 | 5 | JD-cleaning diff + terms | JD shown before/after boilerplate strip, so the denominator is auditable; term extraction + `dictionary.json` with a load-and-validate test | M |
 | 6 | Weighted coverage + near-misses + alignment | Deterministic weighted coverage with exposed numerator/denominator; near-misses shown, never counted; title/seniority and experience alignment as informational findings outside the score | M |
 | 7 | Format findings | Columns-suspected, tables, text boxes, headers/footers, icon-only contact, ambiguous/abbreviated date formats, heading degeneration — all generic, all with evidence + repair text | M |

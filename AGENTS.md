@@ -7,6 +7,7 @@
 - Build the frontend (writes `src/ats_scanner/static/`; never while the server runs): `uv run ats-build` (runs `npm ci` then `npm run build` in `web/`; needs Node 22.12+)
 - Frontend dev server (second terminal, with `uv run ats-dev`): `npm run dev` in `web/` (proxies `/api` to `http://127.0.0.1:8000`)
 - Type-check the frontend alone: `npx tsc --noEmit` in `web/`
+- Regenerate the golden sample report (`tests/fixtures/report.sample.json`) after a deliberate report change: `uv run python tests/update_sample.py` (it just rewrites the file; review the diff — the golden tests fail with this hint otherwise)
 
 ## Read first
 - docs/PRODUCT_PLAN.md (what and why), docs/SPEC.md (behaviour), docs/ARCHITECTURE.md (structure), docs/ROADMAP.md (order of work).
