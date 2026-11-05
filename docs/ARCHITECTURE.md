@@ -58,6 +58,8 @@ web/
     components/
 tests/
   fixtures/                    synthetic resumes and JDs, no real personal data
+  harness.py                   eval harness: fixture -> facts, compared against
+                               a `*.expected.json` subset beside each fixture
   test_*.py
 ```
 

@@ -1,0 +1,138 @@
+"""tests/harness.py: the fixture evaluation harness (ROADMAP Day 4).
+
+Meta-tests pin `check` behaviour: a matching subset passes, a mismatch
+fails with a readable message, unknown keys and unknown section/contact
+names fail loudly, unmentioned keys are ignored, and error expectations
+behave (match, mismatch, success-where-error-expected, error-must-be-
+alone). One parametrized test runs every .pdf/.docx fixture in
+tests/fixtures/resumes/ against its `name.ext.expected.json` subset and
+fails when either side is missing.
+"""
+
+import json
+from pathlib import Path
+
+import pytest
+
+from harness import FixtureFacts, check, run_fixture
+
+FIXTURES = Path(__file__).resolve().parent / "fixtures" / "resumes"
+
+OK_FACTS = FixtureFacts(
+    error=None,
+    reading_order=("row",),
+    sections_found=frozenset({"contact", "summary"}),
+    sections_missing=frozenset({"projects"}),
+    contact={"email": True, "phone": False, "linkedin": False},
+    warning_codes=frozenset(),
+)
+
+ERROR_FACTS = FixtureFacts(
+    error="bad_pdf",
+    reading_order=(),
+    sections_found=frozenset(),
+    sections_missing=frozenset(),
+    contact={},
+    warning_codes=frozenset(),
+)
+
+
+def test_check_passes_on_a_matching_subset() -> None:
+    assert check({"sections_found": ["contact"], "reading_order": ["row"]}, OK_FACTS) == []
+
+
+def test_check_reports_a_mismatch_readably() -> None:
+    messages = check({"reading_order": ["column"]}, OK_FACTS)
+    assert len(messages) == 1
+    assert "column" in messages[0] and "row" in messages[0]
+
+
+def test_check_fails_loudly_on_unknown_keys() -> None:
+    messages = check({"score": 99}, OK_FACTS)
+    assert len(messages) == 1
+    assert "score" in messages[0]
+
+
+def test_check_ignores_keys_that_are_not_mentioned() -> None:
+    assert check({}, OK_FACTS) == []
+
+
+def test_check_fails_on_unknown_section_names() -> None:
+    messages = check({"sections_found": ["nosuch"]}, OK_FACTS)
+    assert len(messages) == 1
+    assert "nosuch" in messages[0]
+
+
+def test_check_fails_on_unknown_contact_keys() -> None:
+    messages = check({"contact": {"fax": True}}, OK_FACTS)
+    assert len(messages) == 1
+    assert "fax" in messages[0]
+
+
+def test_check_reports_a_wrong_contact_flag() -> None:
+    messages = check({"contact": {"email": False}}, OK_FACTS)
+    assert len(messages) == 1
+    assert "email" in messages[0]
+
+
+def test_check_reports_an_unexpectedly_found_section() -> None:
+    messages = check({"sections_missing": ["summary"]}, OK_FACTS)
+    assert len(messages) == 1
+    assert "summary" in messages[0]
+
+
+def test_warning_codes_compare_as_sets() -> None:
+    facts = FixtureFacts(
+        error=None,
+        reading_order=("column",),
+        sections_found=frozenset(),
+        sections_missing=frozenset(),
+        contact={},
+        warning_codes=frozenset({"columns_suspected"}),
+    )
+    assert check({"warning_codes": ["columns_suspected"]}, facts) == []
+    messages = check({"warning_codes": []}, facts)
+    assert len(messages) == 1
+    assert "columns_suspected" in messages[0]
+
+
+def test_error_expectation_matches() -> None:
+    assert check({"error": "bad_pdf"}, ERROR_FACTS) == []
+
+
+def test_error_expectation_mismatch_is_readable() -> None:
+    messages = check({"error": "unsupported_type"}, ERROR_FACTS)
+    assert len(messages) == 1
+    assert "unsupported_type" in messages[0] and "bad_pdf" in messages[0]
+
+
+def test_error_expectation_against_a_successful_run_fails() -> None:
+    messages = check({"error": "bad_pdf"}, OK_FACTS)
+    assert len(messages) == 1
+    assert "succeeded" in messages[0]
+
+
+def test_error_must_be_the_only_key() -> None:
+    messages = check({"error": "bad_pdf", "reading_order": ["row"]}, ERROR_FACTS)
+    assert len(messages) == 1
+    assert "only" in messages[0]
+
+
+FIXTURE_NAMES = sorted(
+    {
+        *(path.name for path in FIXTURES.iterdir() if path.suffix in {".pdf", ".docx"}),
+        *(path.name.removesuffix(".expected.json") for path in FIXTURES.glob("*.expected.json")),
+    }
+)
+
+
+@pytest.mark.parametrize("name", FIXTURE_NAMES)
+def test_every_fixture_matches_its_expected_subset(name: str) -> None:
+    fixture = FIXTURES / name
+    expected_path = FIXTURES / f"{name}.expected.json"
+    assert fixture.exists(), f"{expected_path.name} has no fixture file beside it"
+    assert expected_path.exists(), f"{fixture.name} has no {fixture.name}.expected.json"
+    facts = run_fixture(fixture)
+    expected = json.loads(expected_path.read_text(encoding="utf-8"))
+    messages = check(expected, facts)
+    assert not messages, "\n".join(messages)

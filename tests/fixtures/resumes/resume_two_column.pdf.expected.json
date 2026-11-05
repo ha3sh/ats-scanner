@@ -1,0 +1,7 @@
+{
+  "reading_order": ["column"],
+  "sections_found": ["contact", "summary", "experience", "education", "skills", "certifications"],
+  "sections_missing": ["projects"],
+  "contact": {"email": true, "phone": true, "linkedin": false},
+  "warning_codes": ["columns_suspected"]
+}
