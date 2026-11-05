@@ -36,8 +36,13 @@ class SkillCategory(StrEnum):
 class SkillEntry(BaseModel):
     """One skill: a canonical display name plus its accepted aliases.
 
-    exact_case is true only for short ambiguous names (Go, R, C): those
-    must later match only with that exact capitalization.
+    exact_case and ambiguous control how the matcher treats the entry:
+
+    - exact_case (short names: C, Go, R) means "match only with this
+      capitalization" — the bare name alone is too ambiguous otherwise.
+    - ambiguous means "the bare name or an alias is also an ordinary
+      word" — the matcher must later require skill context before
+      counting it (e.g. Express, Spring, Vault, REST).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -46,6 +51,7 @@ class SkillEntry(BaseModel):
     aliases: tuple[str, ...] = ()
     category: SkillCategory
     exact_case: bool = False
+    ambiguous: bool = False
 
     @field_validator("canonical")
     @classmethod

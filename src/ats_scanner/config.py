@@ -33,4 +33,4 @@ MAX_DOCX_ENTRIES: int = 1000
 ENGINE_VERSION: str = "0.1.0"
 # Keep in sync with the "version" field in src/ats_scanner/data/dictionary.json:
 # bump both together (asserted equal in tests/test_dictionary.py).
-DICTIONARY_VERSION: int = 1
+DICTIONARY_VERSION: int = 2

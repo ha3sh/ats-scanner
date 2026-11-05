@@ -25,6 +25,30 @@ from ats_scanner.core.dictionary import (
 # The short ambiguous names that alone may match with exact capitalization.
 EXACT_CASE_ALLOW_LIST = {"Go", "R", "C"}
 
+# Entries whose bare name or alias is also an ordinary word: the matcher
+# must later require skill context before counting them.
+AMBIGUOUS_ALLOW_LIST = {
+    "Express",
+    "Spring",
+    "Rails",
+    "Microsoft Excel",
+    "Unity",
+    "Assembly",
+    "Vault",
+    "Phoenix",
+    "Swift",
+    "Hugo",
+    "Nest",
+    "Apache Hive",
+    "Apache Spark",
+    "Node.js",
+    "REST",
+}
+
+# Aliases removed because they false-match ordinary English words
+# (regression list: they must never come back).
+REMOVED_ALIASES = {"py", "pd", "tf", "sns", "pil", "sonar", "shell"}
+
 
 @pytest.fixture(scope="module")
 def dictionary() -> Dictionary:
@@ -134,3 +158,31 @@ def test_real_file_index_builds_without_collisions(dictionary: Dictionary) -> No
 def test_exact_case_entries_are_exactly_the_allow_list(dictionary: Dictionary) -> None:
     exact = {entry.canonical for entry in dictionary.entries if entry.exact_case}
     assert exact == EXACT_CASE_ALLOW_LIST
+
+
+def test_ambiguous_entries_are_exactly_the_allow_list(dictionary: Dictionary) -> None:
+    ambiguous = {entry.canonical for entry in dictionary.entries if entry.ambiguous}
+    assert ambiguous == AMBIGUOUS_ALLOW_LIST
+
+
+def test_removed_aliases_never_come_back(dictionary: Dictionary) -> None:
+    for entry in dictionary.entries:
+        for alias in entry.aliases:
+            assert normalize_term(alias) not in REMOVED_ALIASES, (entry.canonical, alias)
+
+
+def test_no_alias_is_shorter_than_two_characters(dictionary: Dictionary) -> None:
+    for entry in dictionary.entries:
+        for alias in entry.aliases:
+            assert len(alias.strip()) >= 2, (entry.canonical, alias)
+
+
+def test_requests_and_excel_are_renamed(dictionary: Dictionary) -> None:
+    canonicals = {normalize_term(entry.canonical) for entry in dictionary.entries}
+    assert "python requests" in canonicals
+    assert "requests" not in canonicals
+    assert "microsoft excel" in canonicals
+    # No alias needed: the canonical itself normalizes to "python requests"
+    # (an alias would duplicate its own canonical, which the model rejects).
+    requests = next(e for e in dictionary.entries if e.canonical == "Python Requests")
+    assert requests.aliases == ()
