@@ -31,4 +31,6 @@ MAX_DOCX_ENTRIES: int = 1000
 # The scoring engine and the curated dictionary evolve independently of the
 # app release (SPEC §3 Determinism).
 ENGINE_VERSION: str = "0.1.0"
-DICTIONARY_VERSION: int = 0  # matches src/ats_scanner/data/dictionary.json
+# Keep in sync with the "version" field in src/ats_scanner/data/dictionary.json:
+# bump both together (asserted equal in tests/test_dictionary.py).
+DICTIONARY_VERSION: int = 1

@@ -25,6 +25,8 @@ src/
     tooling.py                 ats-build / ats-dev helpers (npm discovery, steps)
     adapters/
       extract.py               Extractor implementations (pdfplumber, python-docx)
+      dictionary_loader.py     loads and validates data/dictionary.json (wiring;
+                               core/ does no file I/O)
     core/
       ports.py                 Extractor, TermExtractor, SuggestionProvider
       documents.py             extracted-document model shared with adapters
