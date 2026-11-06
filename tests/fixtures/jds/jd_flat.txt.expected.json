@@ -5,5 +5,9 @@
     {"start_line": 5, "kind": "other"},
     {"start_line": 7, "kind": "other"}
   ],
-  "removed": []
+  "removed": [],
+  "terms": [
+    {"canonical": "Python", "weight": 2.0},
+    {"canonical": "SQL", "weight": 2.0}
+  ]
 }

@@ -124,7 +124,8 @@ and are not part of the score.
    with aliases (`postgres → postgresql`, `k8s → kubernetes`). The dictionary is
    versioned and inspectable. It is loaded once in the app wiring, validated with
    a Pydantic model, and passed into core functions as an argument. `core/` does
-   no file I/O.
+   no file I/O. Uncovered JD terms — words the dictionary does not know — are
+   surfaced in a later step; until then, extraction is dictionary-only.
 4. **Classify required vs other.**
    - A term is **required** if it sits under a requirements-type heading
      (Requirements, Qualifications, Must have) or appears in a sentence

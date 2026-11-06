@@ -12,19 +12,28 @@ asserting a SUBSET of the result. Allowed keys, all optional:
 - `error`: an error code; when present it must be the only key and
   extraction must raise AppError with exactly that code
 
-Unknown keys (top-level or inside `contact`) and unknown section names
-fail loudly. Anything not mentioned is not checked. `check` returns
-human-readable mismatch messages; an empty list means pass.
+JD fixtures use `kept`/`removed` (block lists) plus `terms` (a subset
+check: list of {canonical, weight?} that must all be present) and
+`absent_terms` (canonicals that must not appear).
+
+Unknown keys (top-level or inside `contact`/block/term entries) and
+unknown section names fail loudly. Anything not mentioned is not
+checked. `check`/`check_jd` return human-readable mismatch messages;
+an empty list means pass.
 """
 
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
+from ats_scanner.adapters.dictionary_loader import load_dictionary
 from ats_scanner.adapters.extract import SignatureRoutedExtractor
+from ats_scanner.core.dictionary import SkillEntry, build_index
 from ats_scanner.core.errors import AppError
 from ats_scanner.core.jd import CleanedJd, clean_jd
 from ats_scanner.core.pipeline import analyze
 from ats_scanner.core.report import SectionName
+from ats_scanner.core.terms import JdTerm, extract_terms
 
 _ALLOWED_KEYS = frozenset(
     {
@@ -195,20 +204,37 @@ def _check_warning_codes(
 
 # --- JD fixtures (same conventions, different facts) ---
 
-_JD_ALLOWED_KEYS = frozenset({"kept", "removed"})
+_JD_ALLOWED_KEYS = frozenset({"kept", "removed", "terms", "absent_terms"})
 
 
-def run_jd(path: Path) -> CleanedJd:
-    """Read and clean one JD fixture."""
-    return clean_jd(path.read_text(encoding="utf-8"))
+@dataclass(frozen=True)
+class JdFacts:
+    """The comparable facts of one JD fixture run."""
+
+    cleaned: CleanedJd
+    terms: tuple[JdTerm, ...]
 
 
-def check_jd(expected: dict[str, object], actual: CleanedJd) -> list[str]:
-    """Compare the expected block subset against a CleanedJd; [] means pass.
+@lru_cache(maxsize=1)
+def _jd_index() -> dict[str, SkillEntry]:
+    """The real dictionary index, loaded once for all JD fixtures."""
+    return build_index(load_dictionary())
+
+
+def run_jd(path: Path) -> JdFacts:
+    """Read, clean, and term-extract one JD fixture."""
+    cleaned = clean_jd(path.read_text(encoding="utf-8"))
+    return JdFacts(cleaned=cleaned, terms=extract_terms(cleaned, _jd_index()))
+
+
+def check_jd(expected: dict[str, object], actual: JdFacts) -> list[str]:
+    """Compare the expected subset against a JdFacts run; [] means pass.
 
     `kept` entries may carry start_line and kind; `removed` entries
-    start_line and reason. Unknown keys (top level or inside an entry)
-    fail loudly; anything not mentioned is not checked.
+    start_line and reason. `terms` entries carry canonical and an
+    optional weight and must all be present (subset). `absent_terms`
+    lists canonicals that must not appear. Unknown keys (top level or
+    inside an entry) fail loudly; anything not mentioned is not checked.
     """
     messages: list[str] = []
     unknown = sorted(set(expected) - _JD_ALLOWED_KEYS)
@@ -218,17 +244,19 @@ def check_jd(expected: dict[str, object], actual: CleanedJd) -> list[str]:
     _check_jd_blocks(
         "kept",
         expected.get("kept"),
-        [(block.start_line, block.kind.value) for block in actual.kept],
+        [(block.start_line, block.kind.value) for block in actual.cleaned.kept],
         "kind",
         messages,
     )
     _check_jd_blocks(
         "removed",
         expected.get("removed"),
-        [(block.start_line, block.reason.value) for block in actual.removed],
+        [(block.start_line, block.reason.value) for block in actual.cleaned.removed],
         "reason",
         messages,
     )
+    _check_jd_terms(expected.get("terms"), actual.terms, messages)
+    _check_jd_absent_terms(expected.get("absent_terms"), actual.terms, messages)
     return messages
 
 
@@ -269,3 +297,48 @@ def _check_jd_blocks(
             messages.append(f"{key}[{index}]: expected start_line {exp_start}, got {act_start}")
         if exp_field is not None and exp_field != act_field:
             messages.append(f"{key}[{index}]: expected {field} {exp_field!r}, got {act_field!r}")
+
+
+def _check_jd_terms(value: object, actual: tuple[JdTerm, ...], messages: list[str]) -> None:
+    if value is None:
+        return
+    if not isinstance(value, list):
+        messages.append("'terms' must be a list of {canonical, weight?} objects")
+        return
+    by_canonical = {term.canonical: term for term in actual}
+    for entry in value:
+        if not isinstance(entry, dict):
+            messages.append("terms: each entry must be an object with 'canonical' and 'weight'")
+            return
+        unknown = sorted(set(entry) - {"canonical", "weight"})
+        if unknown:
+            messages.append(f"terms: unknown key(s) in entry: {', '.join(unknown)}")
+            return
+        canonical = entry.get("canonical")
+        if not isinstance(canonical, str) or not canonical:
+            messages.append("terms: 'canonical' must be a non-empty string")
+            return
+        term = by_canonical.get(canonical)
+        if term is None:
+            messages.append(f"terms: {canonical!r} was not extracted")
+            continue
+        weight = entry.get("weight")
+        if weight is None:
+            continue
+        if isinstance(weight, bool) or not isinstance(weight, (int, float)):
+            messages.append(f"terms: 'weight' for {canonical!r} must be a number")
+            return
+        if float(weight) != term.weight:
+            messages.append(f"terms: {canonical!r} expected weight {weight}, got {term.weight}")
+
+
+def _check_jd_absent_terms(value: object, actual: tuple[JdTerm, ...], messages: list[str]) -> None:
+    if value is None:
+        return
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        messages.append("'absent_terms' must be a list of canonical strings")
+        return
+    present = {term.canonical for term in actual}
+    unexpected = [canonical for canonical in value if canonical in present]
+    if unexpected:
+        messages.append(f"absent_terms: unexpectedly extracted: {', '.join(unexpected)}")

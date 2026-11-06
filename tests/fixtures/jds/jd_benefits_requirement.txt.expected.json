@@ -7,5 +7,9 @@
   "removed": [
     {"start_line": 11, "reason": "benefits"},
     {"start_line": 14, "reason": "how_to_apply"}
+  ],
+  "terms": [
+    {"canonical": "Python", "weight": 2.0},
+    {"canonical": "SQL", "weight": 2.0}
   ]
 }

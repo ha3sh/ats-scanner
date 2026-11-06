@@ -14,8 +14,10 @@ from pathlib import Path
 
 import pytest
 
+from ats_scanner.core.dictionary import SkillCategory
 from ats_scanner.core.jd import BlockKind, CleanedJd, KeptBlock, RemovalReason, RemovedBlock
-from harness import FixtureFacts, check, check_jd, run_fixture
+from ats_scanner.core.terms import JdTerm
+from harness import FixtureFacts, JdFacts, check, check_jd, run_fixture
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "resumes"
 
@@ -119,13 +121,28 @@ def test_error_must_be_the_only_key() -> None:
     assert "only" in messages[0]
 
 
-JD_FACTS = CleanedJd(
+JD_CLEANED = CleanedJd(
     kept=(
         KeptBlock(text="intro", start_line=1, kind=BlockKind.OTHER),
         KeptBlock(text="- Python", start_line=3, kind=BlockKind.REQUIREMENTS),
     ),
     removed=(RemovedBlock(text="- PTO", start_line=5, reason=RemovalReason.BENEFITS),),
 )
+
+JD_TERMS = (
+    JdTerm(
+        canonical="Python",
+        category=SkillCategory.LANGUAGE,
+        weight=2.0,
+        required=True,
+        occurrences=1,
+        surface="Python",
+        line=3,
+        context="- Python",
+    ),
+)
+
+JD_FACTS = JdFacts(cleaned=JD_CLEANED, terms=JD_TERMS)
 
 
 def test_check_jd_passes_on_a_matching_subset() -> None:
@@ -165,6 +182,35 @@ def test_check_jd_reports_a_block_count_mismatch() -> None:
     messages = check_jd({"removed": []}, JD_FACTS)
     assert len(messages) == 1
     assert "0 blocks" in messages[0]
+
+
+def test_check_jd_terms_subset_passes() -> None:
+    assert check_jd({"terms": [{"canonical": "Python", "weight": 2.0}]}, JD_FACTS) == []
+
+
+def test_check_jd_terms_reports_a_missing_term() -> None:
+    messages = check_jd({"terms": [{"canonical": "SQL"}]}, JD_FACTS)
+    assert len(messages) == 1
+    assert "SQL" in messages[0]
+
+
+def test_check_jd_terms_reports_a_weight_mismatch() -> None:
+    messages = check_jd({"terms": [{"canonical": "Python", "weight": 1.0}]}, JD_FACTS)
+    assert len(messages) == 1
+    assert "1.0" in messages[0] and "2.0" in messages[0]
+
+
+def test_check_jd_terms_fails_on_unknown_keys_inside_entries() -> None:
+    messages = check_jd({"terms": [{"canonical": "Python", "line": 3}]}, JD_FACTS)
+    assert len(messages) == 1
+    assert "line" in messages[0]
+
+
+def test_check_jd_absent_terms_pass_and_fail() -> None:
+    assert check_jd({"absent_terms": ["SQL"]}, JD_FACTS) == []
+    messages = check_jd({"absent_terms": ["Python"]}, JD_FACTS)
+    assert len(messages) == 1
+    assert "Python" in messages[0]
 
 
 FIXTURE_NAMES = sorted(

@@ -39,6 +39,8 @@ src/
       sections.py              section and contact detection
       jd.py                    JD cleaning: kept/removed boilerplate blocks
                                (pure; the diff view's ground truth, SPEC §3)
+      terms.py                 JD term extraction: maximal munch over the
+                               dictionary index, required/preferred weights
       terms.py                 JD cleaning, term extraction, matching
       score.py                 weights and weighted coverage only
       alignment.py             title/seniority and experience alignment

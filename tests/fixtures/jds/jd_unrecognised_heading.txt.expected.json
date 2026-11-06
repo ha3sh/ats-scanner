@@ -8,5 +8,10 @@
   "removed": [
     {"start_line": 7, "reason": "benefits"},
     {"start_line": 15, "reason": "how_to_apply"}
-  ]
+  ],
+  "terms": [
+    {"canonical": "Kubernetes", "weight": 2.0},
+    {"canonical": "Rust", "weight": 1.0}
+  ],
+  "absent_terms": ["Go"]
 }
