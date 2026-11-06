@@ -22,6 +22,7 @@ from pathlib import Path
 
 from ats_scanner.adapters.extract import SignatureRoutedExtractor
 from ats_scanner.core.errors import AppError
+from ats_scanner.core.jd import CleanedJd, clean_jd
 from ats_scanner.core.pipeline import analyze
 from ats_scanner.core.report import SectionName
 
@@ -190,3 +191,81 @@ def _check_warning_codes(
         messages.append(
             f"warning_codes: expected {sorted(expected_set)}, got {sorted(actual.warning_codes)}"
         )
+
+
+# --- JD fixtures (same conventions, different facts) ---
+
+_JD_ALLOWED_KEYS = frozenset({"kept", "removed"})
+
+
+def run_jd(path: Path) -> CleanedJd:
+    """Read and clean one JD fixture."""
+    return clean_jd(path.read_text(encoding="utf-8"))
+
+
+def check_jd(expected: dict[str, object], actual: CleanedJd) -> list[str]:
+    """Compare the expected block subset against a CleanedJd; [] means pass.
+
+    `kept` entries may carry start_line and kind; `removed` entries
+    start_line and reason. Unknown keys (top level or inside an entry)
+    fail loudly; anything not mentioned is not checked.
+    """
+    messages: list[str] = []
+    unknown = sorted(set(expected) - _JD_ALLOWED_KEYS)
+    if unknown:
+        allowed = ", ".join(sorted(_JD_ALLOWED_KEYS))
+        messages.append(f"unknown expected key(s): {', '.join(unknown)} (allowed: {allowed})")
+    _check_jd_blocks(
+        "kept",
+        expected.get("kept"),
+        [(block.start_line, block.kind.value) for block in actual.kept],
+        "kind",
+        messages,
+    )
+    _check_jd_blocks(
+        "removed",
+        expected.get("removed"),
+        [(block.start_line, block.reason.value) for block in actual.removed],
+        "reason",
+        messages,
+    )
+    return messages
+
+
+def _check_jd_blocks(
+    key: str,
+    value: object,
+    actual_pairs: list[tuple[int, str]],
+    field: str,
+    messages: list[str],
+) -> None:
+    if value is None:
+        return
+    if not isinstance(value, list):
+        messages.append(f"{key!r} must be a list of block objects")
+        return
+    entries: list[tuple[int, str | None]] = []
+    for entry in value:
+        if not isinstance(entry, dict):
+            messages.append(f"{key}: each entry must be an object with 'start_line' and '{field}'")
+            return
+        unknown = sorted(set(entry) - {"start_line", field})
+        if unknown:
+            messages.append(f"{key}: unknown key(s) in entry: {', '.join(unknown)}")
+            return
+        start = entry.get("start_line")
+        if not isinstance(start, int) or isinstance(start, bool):
+            messages.append(f"{key}: 'start_line' must be an integer")
+            return
+        field_value = entry.get(field)
+        entries.append((start, field_value if isinstance(field_value, str) else None))
+    if len(entries) != len(actual_pairs):
+        messages.append(f"{key}: expected {len(entries)} blocks, got {len(actual_pairs)}")
+        return
+    for index, ((exp_start, exp_field), (act_start, act_field)) in enumerate(
+        zip(entries, actual_pairs, strict=True)
+    ):
+        if exp_start != act_start:
+            messages.append(f"{key}[{index}]: expected start_line {exp_start}, got {act_start}")
+        if exp_field is not None and exp_field != act_field:
+            messages.append(f"{key}[{index}]: expected {field} {exp_field!r}, got {act_field!r}")

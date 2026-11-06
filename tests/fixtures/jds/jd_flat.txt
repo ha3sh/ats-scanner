@@ -1,0 +1,7 @@
+Backend Developer - Bluebird Analytics
+
+We need a backend developer for our reporting pipeline.
+
+You will build APIs, tune queries, and keep deploys boring.
+
+Three years of Python and solid SQL are required.

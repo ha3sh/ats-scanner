@@ -14,7 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from harness import FixtureFacts, check, run_fixture
+from ats_scanner.core.jd import BlockKind, CleanedJd, KeptBlock, RemovalReason, RemovedBlock
+from harness import FixtureFacts, check, check_jd, run_fixture
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "resumes"
 
@@ -116,6 +117,54 @@ def test_error_must_be_the_only_key() -> None:
     messages = check({"error": "bad_pdf", "reading_order": ["row"]}, ERROR_FACTS)
     assert len(messages) == 1
     assert "only" in messages[0]
+
+
+JD_FACTS = CleanedJd(
+    kept=(
+        KeptBlock(text="intro", start_line=1, kind=BlockKind.OTHER),
+        KeptBlock(text="- Python", start_line=3, kind=BlockKind.REQUIREMENTS),
+    ),
+    removed=(RemovedBlock(text="- PTO", start_line=5, reason=RemovalReason.BENEFITS),),
+)
+
+
+def test_check_jd_passes_on_a_matching_subset() -> None:
+    expected = {
+        "kept": [{"start_line": 1, "kind": "other"}, {"start_line": 3}],
+        "removed": [{"start_line": 5, "reason": "benefits"}],
+    }
+    assert check_jd(expected, JD_FACTS) == []
+
+
+def test_check_jd_reports_a_mismatch_readably() -> None:
+    expected: dict[str, object] = {
+        "kept": [{"start_line": 1, "kind": "other"}, {"start_line": 3, "kind": "other"}],
+    }
+    messages = check_jd(expected, JD_FACTS)
+    assert len(messages) == 1
+    assert "requirements" in messages[0]
+
+
+def test_check_jd_fails_loudly_on_unknown_keys() -> None:
+    messages = check_jd({"score": 1}, JD_FACTS)
+    assert len(messages) == 1
+    assert "score" in messages[0]
+
+
+def test_check_jd_fails_on_unknown_keys_inside_entries() -> None:
+    messages = check_jd({"kept": [{"start_line": 1, "text": "intro"}]}, JD_FACTS)
+    assert len(messages) == 1
+    assert "text" in messages[0]
+
+
+def test_check_jd_ignores_unmentioned_lists() -> None:
+    assert check_jd({}, JD_FACTS) == []
+
+
+def test_check_jd_reports_a_block_count_mismatch() -> None:
+    messages = check_jd({"removed": []}, JD_FACTS)
+    assert len(messages) == 1
+    assert "0 blocks" in messages[0]
 
 
 FIXTURE_NAMES = sorted(

@@ -1,0 +1,21 @@
+Senior Backend Engineer at Bluebird Analytics
+
+Bluebird Analytics is an equal opportunity employer. We celebrate diversity and inclusion on every team.
+
+Requirements:
+- Five years of Python
+- Production SQL experience
+
+Responsibilities:
+- Design APIs
+- Mentor juniors
+
+Benefits:
+- Unlimited PTO
+- Free snacks
+
+About Us:
+We are a small team in Portland.
+
+How to apply:
+Send a resume to jobs@bluebird.example.

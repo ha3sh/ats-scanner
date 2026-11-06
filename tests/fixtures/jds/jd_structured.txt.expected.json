@@ -1,0 +1,13 @@
+{
+  "kept": [
+    {"start_line": 1, "kind": "other"},
+    {"start_line": 3, "kind": "other"},
+    {"start_line": 6, "kind": "requirements"},
+    {"start_line": 10, "kind": "preferred"},
+    {"start_line": 14, "kind": "responsibilities"}
+  ],
+  "removed": [
+    {"start_line": 18, "reason": "benefits"},
+    {"start_line": 22, "reason": "how_to_apply"}
+  ]
+}

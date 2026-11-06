@@ -1,0 +1,19 @@
+Platform Engineer at Bluebird Analytics
+
+Requirements:
+- Four years of Go
+- Kubernetes in production
+
+Benefits:
+- Unlimited PTO
+- Yearly learning budget
+
+Tech stack:
+- Rust for the data plane
+- Go for control planes
+
+How to apply:
+Email careers@bluebird.example.
+
+Interview process:
+One intro call, one pairing session.

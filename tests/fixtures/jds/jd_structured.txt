@@ -1,0 +1,23 @@
+Frontend Engineer at Bluebird Analytics
+
+About the role:
+Bluebird Analytics is hiring a frontend engineer to build dashboards for wind farm operators.
+
+Requirements:
+- Three years of JavaScript
+- Experience with REST APIs
+
+Preferred:
+- TypeScript
+- Test automation experience
+
+Responsibilities:
+- Build accessible interfaces
+- Pair with designers
+
+Benefits:
+- Health insurance
+- Flexible hours
+
+How to apply:
+Email careers@bluebird.example with your resume.

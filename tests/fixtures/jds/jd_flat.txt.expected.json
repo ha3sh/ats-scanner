@@ -1,0 +1,9 @@
+{
+  "kept": [
+    {"start_line": 1, "kind": "other"},
+    {"start_line": 3, "kind": "other"},
+    {"start_line": 5, "kind": "other"},
+    {"start_line": 7, "kind": "other"}
+  ],
+  "removed": []
+}
