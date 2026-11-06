@@ -12,7 +12,7 @@
   ],
   "terms": [
     {"canonical": "JavaScript", "weight": 2.0},
+    {"canonical": "REST", "weight": 2.0},
     {"canonical": "TypeScript", "weight": 1.0}
-  ],
-  "absent_terms": ["REST"]
+  ]
 }

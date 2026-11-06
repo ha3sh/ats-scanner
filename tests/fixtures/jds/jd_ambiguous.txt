@@ -8,6 +8,8 @@ We will ship this spring.
 
 Excel at teamwork in every review.
 
+We use R&D budgets and C-level sponsors with Python daily.
+
 Requirements:
 - Five years of experience with Spring Boot
 - Streaming pipelines built on Node.js

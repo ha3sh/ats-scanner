@@ -10,8 +10,8 @@
     {"start_line": 15, "reason": "how_to_apply"}
   ],
   "terms": [
+    {"canonical": "Go", "weight": 2.0},
     {"canonical": "Kubernetes", "weight": 2.0},
     {"canonical": "Rust", "weight": 1.0}
-  ],
-  "absent_terms": ["Go"]
+  ]
 }

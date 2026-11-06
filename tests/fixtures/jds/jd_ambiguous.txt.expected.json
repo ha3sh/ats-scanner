@@ -5,15 +5,16 @@
     {"start_line": 5, "kind": "other"},
     {"start_line": 7, "kind": "other"},
     {"start_line": 9, "kind": "other"},
-    {"start_line": 11, "kind": "requirements"}
+    {"start_line": 11, "kind": "other"},
+    {"start_line": 13, "kind": "requirements"}
   ],
   "removed": [],
   "terms": [
     {"canonical": "Microsoft Excel", "weight": 2.0},
+    {"canonical": "Python", "weight": 2.0},
     {"canonical": "Spring", "weight": 2.0},
     {"canonical": "Node.js", "weight": 2.0},
-    {"canonical": "Python", "weight": 2.0},
     {"canonical": "SQL", "weight": 2.0}
   ],
-  "absent_terms": ["Express", "Go"]
+  "absent_terms": ["Express", "Go", "R", "C"]
 }

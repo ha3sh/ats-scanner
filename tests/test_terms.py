@@ -55,6 +55,14 @@ TEST_INDEX = build_index(
             entry("Microsoft Excel", "excel", category=SkillCategory.TOOL, ambiguous=True),
             entry("Machine Learning", "ml", category=SkillCategory.PRACTICE),
             entry("Rails", "ruby on rails", category=SkillCategory.FRAMEWORK, ambiguous=True),
+            entry(
+                "REST",
+                "rest api",
+                "restful",
+                category=SkillCategory.PRACTICE,
+                ambiguous=True,
+            ),
+            entry("Kubernetes", "k8s", category=SkillCategory.DEVOPS),
         ),
     )
 )
@@ -103,6 +111,46 @@ def test_exact_case_names_need_context_like_ambiguous_ones() -> None:
     # is not a hit, the same rule as for ambiguous entries.
     assert terms_for("Go to market with the founders.\n") == ()
     assert terms_for("R beats everything else here.\n") == ()
+
+
+def test_exact_case_counts_with_a_precedence_cue() -> None:
+    for line, expected in (
+        ("Four years of Go.", "Go"),
+        ("Experience with Go.", "Go"),
+        ("Proficiency in R.", "R"),
+        ("Skilled in R.", "R"),
+    ):
+        assert expected in canonicals(terms_for(f"{line}\n")), line
+
+
+def test_exact_case_counts_inside_a_list() -> None:
+    first = canonicals(terms_for("Experience with Go, SQL and R.\n"))
+    assert {"Go", "SQL", "R"} <= set(first)
+    assert "R" in canonicals(terms_for("Python, R and SQL.\n"))
+    assert "Go" in canonicals(terms_for("Go and Rust.\n"))
+
+
+def test_exact_case_does_not_count_when_hyphen_or_ampersand_joined() -> None:
+    for line in (
+        "R&D with Python.",
+        "Present to C-level execs using Python.",
+        "Go-to-market strategy with SQL.",
+        "Plan C.",
+    ):
+        terms = terms_for(f"{line}\n")
+        assert not ({"Go", "R", "C"} & set(canonicals(terms))), line
+
+
+def test_plural_last_token_retries_with_the_singular() -> None:
+    rest = by_canonical(terms_for("Requirements:\n- Experience with REST APIs\n"), "REST")
+    assert rest.occurrences == 1
+    assert rest.surface == "REST APIs"
+    docker = by_canonical(terms_for("Docker containers everywhere.\n"), "Docker")
+    assert docker.occurrences == 1
+    assert canonicals(terms_for("Docker containers everywhere.\n")) == ["Docker"]
+    kubernetes = by_canonical(terms_for("Kubernetes in production.\n"), "Kubernetes")
+    assert kubernetes.occurrences == 1
+    assert kubernetes.surface == "Kubernetes"
 
 
 def test_ambiguous_single_words_need_punctuation_or_a_neighbour() -> None:
