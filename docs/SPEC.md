@@ -136,9 +136,18 @@ and are not part of the score.
      and is classified as required by v1's literal matching. There is no
      negation parsing; this is documented as a known limitation.
 5. **Weight.** 2.0 for required terms, 1.0 for other terms.
-6. **Match.** Exact normalized tokens, alias map, singular/plural equivalence,
-   hyphen/space equivalence.
-7. **Score.**
+6. **Match.** JD terms and resume text go through ONE dictionary matcher
+   (`core/terms._line_matches`): maximal munch, alias map, plural retry on the
+   last token, hyphen/space equivalence and the exact_case context rule. The
+   resume is read in the order the pipeline chose (column text if present, else
+   row text). Before matching, its text is normalized with Unicode NFKC
+   (ligatures included), soft hyphens removed, hyphenated line wraps joined
+   ("Post-\ngreSQL" → "PostgreSQL") and other line breaks treated as spaces, so
+   a term split across lines still matches. Evidence spans map back to the
+   ORIGINAL page text: 1-based page and line, start/end character offsets and
+   the resume section active at that point (from the existing section
+   findings).
+7. **Score.** Exact matches only; near misses never contribute.
 
 ### Formula
 
@@ -157,11 +166,22 @@ numerator, the denominator, the integer percentage, and per-class counts:
 
 The UI caption is always
 `Required terms: X of Y · Other terms: A of B · required terms count double.`
+"Other" is the preferred/non-required weight class (1.0). Weights are exposed
+as exact sums; no rounding happens in the backend. With zero JD terms the
+denominator is 0, no division is performed, `pct` is 0 and `state` is
+`"no_terms"`.
 
 ### Near matches
 
-Near misses (edit distance 1, term length ≥ 6) are shown as "possible match —
-not counted". They never enter the score. This is the anti-flattery mechanism.
+Near misses are the anti-flattery mechanism: a JD term with no match and a
+close resume variant is shown as "possible match — not counted". It never
+enters any numerator or denominator (`counted = false` in the report). The rule
+is deliberately conservative: only single-word terms of at least 6 characters
+qualify; edit distance 1 is enough, distance 2 only from 10 characters;
+exact_case terms (C, Go, R) are skipped; and a variant that normalizes to a
+different dictionary entry or alias is skipped, so Java is never reported as a
+near miss for JavaScript. At most one variant per term is shown, chosen by the
+smallest distance then lexicographic order.
 
 ### Alignment checks
 
@@ -314,16 +334,16 @@ Implemented today (later pipeline days extend it):
   benefits, about_company, how_to_apply)
 - `jd.terms[]`: canonical, category, weight, required, occurrences, surface,
   line and context; only kept blocks feed term extraction
+- `terms.matched[]`: term (JD surface), canonical form, weight, JD context,
+  resume context and resume span (page, line, start_char, end_char, section)
+- `terms.missing[]`: term, weight, JD context
+- `terms.near_misses[]`: term, found variant, distance, counted = false
+- `score`: covered_weight, total_weight, pct, required {covered, total}, other
+  {covered, total}, definition, state ("terms" or "no_terms")
 
 Remaining for later days:
 
 - `verdict`: one-line sentence
-- `score`: weighted percentage, covered weight, total weight, required
-  {covered, total}, other {covered, total}, definition
-- `terms.matched[]`: term, canonical form, weight, JD context, resume context,
-  resume span
-- `terms.missing[]`: term, weight, JD context
-- `terms.near_misses[]`: term, found variant, distance, counted = false
 - `findings[]`: id, severity, title, detail, evidence, location, fix
 - `suggestions[]`: finding id, text
 - `alignment`: title, seniority, experience — informational, separate from

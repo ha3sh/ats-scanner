@@ -21,7 +21,7 @@ JD_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "jds"
 def analyze_fixture(name: str) -> PipelineResult:
     data = (FIXTURES / name).read_bytes()
     document = SignatureRoutedExtractor().extract(data, name, "application/octet-stream")
-    return analyze(document)
+    return analyze(document, build_index(load_dictionary()))
 
 
 def by_name(result: PipelineResult) -> dict[SectionName, SectionFinding]:

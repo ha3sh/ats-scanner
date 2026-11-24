@@ -11,6 +11,8 @@ asserting a SUBSET of the result. Allowed keys, all optional:
 - `warning_codes`: compared as sets
 - `error`: an error code; when present it must be the only key and
   extraction must raise AppError with exactly that code
+- `covered_weight`, `total_weight`: exact weighted coverage numerator and
+  denominator against the shared JD fixture, compared as floats
 
 JD fixtures use `kept`/`removed` (block lists) plus `terms` (a subset
 check: list of {canonical, weight?} that must all be present) and
@@ -31,7 +33,7 @@ from ats_scanner.adapters.extract import SignatureRoutedExtractor
 from ats_scanner.core.dictionary import SkillEntry, build_index
 from ats_scanner.core.errors import AppError
 from ats_scanner.core.jd import CleanedJd, clean_jd
-from ats_scanner.core.pipeline import analyze
+from ats_scanner.core.pipeline import analyze, analyze_terms
 from ats_scanner.core.report import SectionName
 from ats_scanner.core.terms import JdTerm, extract_terms
 
@@ -43,8 +45,12 @@ _ALLOWED_KEYS = frozenset(
         "contact",
         "warning_codes",
         "error",
+        "covered_weight",
+        "total_weight",
     }
 )
+JD_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "jds" / "jd_structured.txt"
+
 _CONTACT_KEYS = frozenset({"email", "phone", "linkedin"})
 _SECTION_NAMES = frozenset(section.value for section in SectionName)
 
@@ -59,6 +65,7 @@ class FixtureFacts:
     sections_missing: frozenset[str]
     contact: dict[str, bool]
     warning_codes: frozenset[str]
+    coverage: tuple[float, float] | None = None
 
 
 def run_fixture(path: Path) -> FixtureFacts:
@@ -75,7 +82,9 @@ def run_fixture(path: Path) -> FixtureFacts:
             contact={},
             warning_codes=frozenset(),
         )
-    result = analyze(document)
+    index = _jd_index()
+    result = analyze(document, index)
+    _, score = analyze_terms(run_jd(JD_FIXTURE).terms, result, index)
     return FixtureFacts(
         error=None,
         reading_order=tuple(result.reading_order),
@@ -87,6 +96,7 @@ def run_fixture(path: Path) -> FixtureFacts:
             "linkedin": result.contact.linkedin.found,
         },
         warning_codes=frozenset(warning.code.value for warning in document.warnings),
+        coverage=(score.covered_weight, score.total_weight),
     )
 
 
@@ -121,7 +131,23 @@ def check(expected: dict[str, object], actual: FixtureFacts) -> list[str]:
     _check_sections(expected, actual, messages)
     _check_contact(expected, actual, messages)
     _check_warning_codes(expected, actual, messages)
+    _check_coverage(expected, actual, messages)
     return messages
+
+
+def _check_coverage(expected: dict[str, object], actual: FixtureFacts, messages: list[str]) -> None:
+    for key, index in (("covered_weight", 0), ("total_weight", 1)):
+        value = expected.get(key)
+        if value is None:
+            continue
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            messages.append(f"{key!r} must be a number")
+            continue
+        if actual.coverage is None:
+            messages.append(f"{key}: no coverage facts for this fixture")
+            continue
+        if float(value) != actual.coverage[index]:
+            messages.append(f"{key}: expected {float(value)}, got {actual.coverage[index]}")
 
 
 def _check_reading_order(

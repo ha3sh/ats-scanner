@@ -182,5 +182,41 @@
         "context": "- TypeScript"
       }
     ]
+  },
+  "terms": {
+    "matched": [],
+    "missing": [
+      {
+        "term": "JavaScript",
+        "weight": 2.0,
+        "jd_context": "- Three years of JavaScript"
+      },
+      {
+        "term": "REST APIs",
+        "weight": 2.0,
+        "jd_context": "- Experience with REST APIs"
+      },
+      {
+        "term": "TypeScript",
+        "weight": 1.0,
+        "jd_context": "- TypeScript"
+      }
+    ],
+    "near_misses": []
+  },
+  "score": {
+    "covered_weight": 0.0,
+    "total_weight": 5.0,
+    "pct": 0,
+    "required": {
+      "covered": 0.0,
+      "total": 4.0
+    },
+    "other": {
+      "covered": 0.0,
+      "total": 1.0
+    },
+    "definition": "coverage = sum(weight(matched terms)) / sum(weight(all terms))",
+    "state": "terms"
   }
 }

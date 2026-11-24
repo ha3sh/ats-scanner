@@ -71,6 +71,18 @@ def test_fresh_analysis_matches_the_sample() -> None:
     assert fresh == sample_json(), _REGENERATE
 
 
+def test_report_carries_terms_and_exact_weighted_coverage() -> None:
+    report = analyzed_json()
+    assert set(report["terms"]) == {"matched", "missing", "near_misses"}
+    assert sum(term["weight"] for term in report["jd"]["terms"]) == report["score"]["total_weight"]
+    assert report["score"]["covered_weight"] == 0.0
+    assert report["score"]["total_weight"] == 5.0
+    assert report["score"]["required"] == {"covered": 0.0, "total": 4.0}
+    assert report["score"]["other"] == {"covered": 0.0, "total": 1.0}
+    assert report["score"]["state"] == "terms"
+    assert "ATS score" not in json.dumps(report)
+
+
 def test_two_runs_are_identical_after_normalising_duration() -> None:
     first = normalised(analyzed_json())
     second = normalised(analyzed_json())

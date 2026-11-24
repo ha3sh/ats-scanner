@@ -3,5 +3,7 @@
   "sections_found": ["contact", "summary", "experience", "education", "skills", "certifications"],
   "sections_missing": ["projects"],
   "contact": {"email": true, "phone": true, "linkedin": false},
-  "warning_codes": ["columns_suspected"]
+  "warning_codes": ["columns_suspected"],
+  "covered_weight": 0.0,
+  "total_weight": 5.0
 }

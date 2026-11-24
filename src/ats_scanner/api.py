@@ -35,7 +35,7 @@ from ats_scanner.config import (
 from ats_scanner.core.dictionary import SkillEntry
 from ats_scanner.core.errors import AppError, ErrorCode
 from ats_scanner.core.pipeline import analyze as analyze_pipeline
-from ats_scanner.core.pipeline import analyze_jd
+from ats_scanner.core.pipeline import analyze_jd, analyze_terms
 from ats_scanner.core.ports import Extractor
 from ats_scanner.core.report import (
     SCHEMA_VERSION,
@@ -303,7 +303,8 @@ def create_app(
             if resolved_index is None:
                 raise RuntimeError("create_app(expected an injected dictionary index)")
             jd = analyze_jd(job_description, resolved_index)
-            pipeline = analyze_pipeline(document)
+            pipeline = analyze_pipeline(document, resolved_index)
+            terms, score = analyze_terms(jd.terms, pipeline, resolved_index)
             duration_ms = int((time.perf_counter() - started) * 1000)
             report = AnalysisReport(
                 schema_version=SCHEMA_VERSION,
@@ -334,6 +335,8 @@ def create_app(
                 sections=pipeline.sections,
                 contact=pipeline.contact,
                 jd=jd,
+                terms=terms,
+                score=score,
             )
             _log_result("ok", filename, size_bytes, duration_ms)
             return report

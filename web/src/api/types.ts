@@ -94,6 +94,57 @@ export type JdAnalysis = {
   terms: JdTerm[];
 };
 
+export type ResumeSpan = {
+  page: number;
+  line: number;
+  start_char: number;
+  end_char: number;
+  section: SectionName | null;
+};
+
+export type MatchedTerm = {
+  term: string;
+  canonical: string;
+  weight: number;
+  jd_context: string;
+  resume_context: string;
+  resume_span: ResumeSpan;
+};
+
+export type MissingTerm = {
+  term: string;
+  weight: number;
+  jd_context: string;
+};
+
+export type NearMiss = {
+  term: string;
+  found_variant: string;
+  distance: number;
+  counted: false;
+};
+
+export type TermAnalysis = {
+  matched: MatchedTerm[];
+  missing: MissingTerm[];
+  near_misses: NearMiss[];
+};
+
+export type CoveragePart = {
+  covered: number;
+  total: number;
+};
+
+export type CoverageScore = {
+  covered_weight: number;
+  total_weight: number;
+  pct: number;
+  required: CoveragePart;
+  other: CoveragePart;
+  definition: string;
+  state: "terms" | "no_terms";
+};
+
 export type ReportMeta = {
   filename: string;
   size_bytes: number;
@@ -126,6 +177,8 @@ export type AnalysisReport = {
   sections: SectionFinding[];
   contact: ContactInfo;
   jd: JdAnalysis;
+  terms: TermAnalysis;
+  score: CoverageScore;
 };
 
 export type ErrorEnvelope = {

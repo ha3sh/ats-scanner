@@ -116,12 +116,17 @@ class _Token(NamedTuple):
     norm: str
 
 
-class _Raw(NamedTuple):
-    """One raw match before the ambiguity filter and weighting."""
+class LineMatch(NamedTuple):
+    """One match on a scanned line, with its char span in that line.
+
+    Shared by JD extraction and resume matching: both call `_line_matches`,
+    so maximal munch, plural retry, alias and exact_case rules exist once.
+    """
 
     entry: SkillEntry
     surface: str
-    words: int
+    start: int
+    end: int
 
 
 class _Span(NamedTuple):
@@ -156,7 +161,7 @@ def _tokenize(line: str) -> list[_Token]:
     return tokens
 
 
-def _max_phrase_words(index: dict[str, SkillEntry]) -> int:
+def max_phrase_words(index: dict[str, SkillEntry]) -> int:
     return max((len(key.split()) for key in index), default=1)
 
 
@@ -217,15 +222,12 @@ def _plain(line: str, start: int, end: int) -> bool:
     return not any(character in _JOINS for character in line[start:end])
 
 
-def _anchor_at(spans: list[_Span], token_index: int, side: str) -> bool:
-    return any(getattr(span, side) == token_index and _is_anchor(span.entry) for span in spans)
-
-
 def _list_side(
     tokens: list[_Token],
     span: _Span,
     line: str,
-    spans: list[_Span],
+    anchor_starts: frozenset[int],
+    anchor_ends: frozenset[int],
     left: bool,
 ) -> bool:
     """True when the match is list-separated from an anchor term.
@@ -240,8 +242,8 @@ def _list_side(
     beyond_index = edge + 2 * step
     beyond = 0 <= beyond_index < len(tokens)
     if beyond and tokens[connector_index].norm in _LIST_AND_OR | {"/"}:
-        anchor_side = "end" if left else "start"
-        return _anchor_at(spans, beyond_index, anchor_side) and _plain(
+        anchors = anchor_ends if left else anchor_starts
+        return beyond_index in anchors and _plain(
             line,
             min(tokens[beyond_index].end, tokens[connector_index].start),
             max(tokens[beyond_index].end, tokens[connector_index].start),
@@ -252,12 +254,18 @@ def _list_side(
             if left
             else line[tokens[edge].end : tokens[connector_index].start]
         )
-        anchor_side = "end" if left else "start"
-        return ("," in gap or "/" in gap) and _anchor_at(spans, connector_index, anchor_side)
+        anchors = anchor_ends if left else anchor_starts
+        return ("," in gap or "/" in gap) and connector_index in anchors
     return False
 
 
-def _exact_case_licensed(tokens: list[_Token], span: _Span, line: str, spans: list[_Span]) -> bool:
+def _exact_case_licensed(
+    tokens: list[_Token],
+    span: _Span,
+    line: str,
+    anchor_starts: frozenset[int],
+    anchor_ends: frozenset[int],
+) -> bool:
     """The stricter context rule for bare exact_case matches (C, Go, R)."""
     first, last = tokens[span.start], tokens[span.end]
     before = line[first.start - 1] if first.start > 0 else ""
@@ -270,12 +278,12 @@ def _exact_case_licensed(tokens: list[_Token], span: _Span, line: str, spans: li
         f"{tokens[span.start - 2].norm} {tokens[span.start - 1].norm}" in _EXACT_CASE_CUE_PHRASES
     ):
         return True
-    return _list_side(tokens, span, line, spans, left=True) or _list_side(
-        tokens, span, line, spans, left=False
+    return _list_side(tokens, span, line, anchor_starts, anchor_ends, left=True) or _list_side(
+        tokens, span, line, anchor_starts, anchor_ends, left=False
     )
 
 
-def _line_matches(line: str, index: dict[str, SkillEntry], max_words: int) -> list[_Raw]:
+def _line_matches(line: str, index: dict[str, SkillEntry], max_words: int) -> list[LineMatch]:
     """Maximal-munch matches on one line, then the context filters."""
     tokens = _tokenize(line)
     spans: list[_Span] = []
@@ -288,19 +296,28 @@ def _line_matches(line: str, index: dict[str, SkillEntry], max_words: int) -> li
         spans.append(span)
         position = span.end + 1
     # Ambiguous bare words need an anchor: a non-ambiguous,
-    # non-exact-case term elsewhere on the same line.
-    anchored = any(_is_anchor(span.entry) for span in spans)
-    survivors: list[_Raw] = []
+    # non-exact-case term elsewhere on the same line. Sets keep the
+    # exact_case lookups O(1) so scanning a long resume stays linear.
+    anchors = [span for span in spans if _is_anchor(span.entry)]
+    anchored = bool(anchors)
+    anchor_starts = frozenset(span.start for span in anchors)
+    anchor_ends = frozenset(span.end for span in anchors)
+    survivors: list[LineMatch] = []
     for span in spans:
         if span.entry.exact_case:
-            licensed = _exact_case_licensed(tokens, span, line, spans)
+            licensed = _exact_case_licensed(tokens, span, line, anchor_starts, anchor_ends)
         elif span.entry.ambiguous:
             licensed = span.end > span.start or _has_punctuation(span.surface) or anchored
         else:
             licensed = True
         if licensed:
             survivors.append(
-                _Raw(entry=span.entry, surface=span.surface, words=span.end - span.start + 1)
+                LineMatch(
+                    entry=span.entry,
+                    surface=span.surface,
+                    start=tokens[span.start].start,
+                    end=tokens[span.end].end,
+                )
             )
     return survivors
 
@@ -318,7 +335,7 @@ def extract_terms(cleaned: CleanedJd, index: dict[str, SkillEntry]) -> tuple[JdT
     """Extract dictionary terms from the kept blocks (deterministic)."""
     if not index:
         return ()
-    max_words = _max_phrase_words(index)
+    max_words = max_phrase_words(index)
     counts: dict[str, int] = {}
     best: dict[str, tuple[_Hit, float]] = {}
     for block in cleaned.kept:
