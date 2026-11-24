@@ -11,6 +11,7 @@ from ats_scanner.config import (
     MAX_FILE_BYTES,
     MAX_JD_CHARS,
     MAX_PAGES,
+    MIN_JD_CHARS,
 )
 from ats_scanner.core.errors import AppError, ErrorCode
 
@@ -27,6 +28,7 @@ def test_health_reports_versions_and_limits() -> None:
             "max_file_bytes": MAX_FILE_BYTES,
             "max_pages": MAX_PAGES,
             "max_jd_chars": MAX_JD_CHARS,
+            "min_jd_chars": MIN_JD_CHARS,
         },
     }
 

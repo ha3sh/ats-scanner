@@ -265,7 +265,7 @@ All endpoints are local. The server binds to `127.0.0.1` only.
 | Endpoint | Method | Purpose |
 | --- | --- | --- |
 | `/api/health` | GET | Version, engine version, dictionary version, limits |
-| `/api/analyze` | POST | Multipart file field `resume`; returns the report. No `job_description` form field yet — it joins on Day 5 with JD cleaning |
+| `/api/analyze` | POST | Multipart file field `resume` and required text form field `job_description`; returns the report |
 
 ### File validation
 
@@ -280,6 +280,17 @@ All endpoints are local. The server binds to `127.0.0.1` only.
   fast with `too_many_pages`.
 - A signature or structure mismatch is rejected even when the extension and
   content type claim otherwise.
+
+### Job description validation
+
+Validation runs after the file checks, so a bad file is reported before a bad
+JD:
+
+- At least **200 non-space characters**; otherwise `jd_too_short` (422).
+- At most **20,000 characters**; otherwise `jd_too_long` (422).
+- A missing field is `invalid_request` (422).
+
+Each error carries one human sentence and never any JD text.
 
 ### Report shape
 
@@ -297,6 +308,12 @@ Implemented today (later pipeline days extend it):
   an email or phone is detected, with heading text None
 - `contact`: email, phone, linkedin — each found or not with value, page and
   line; values appear in the response only, never in logs
+- `jd.cleaned.kept[]`: text, start_line (1-based in the pasted JD) and kind
+  (requirements, preferred, responsibilities, other)
+- `jd.cleaned.removed[]`: text, start_line and reason (equal_opportunity,
+  benefits, about_company, how_to_apply)
+- `jd.terms[]`: canonical, category, weight, required, occurrences, surface,
+  line and context; only kept blocks feed term extraction
 
 Remaining for later days:
 
@@ -324,7 +341,7 @@ Remaining for later days:
 | `no_extractable_text` | 422 | Scanned or empty document |
 | `bad_pdf` | 422 | Corrupt or unreadable PDF |
 | `bad_docx` | 422 | Malformed DOCX, invalid ZIP/OOXML, or uncompressed size over the cap |
-| `jd_too_short` | 422 | JD under the minimum length |
+| `jd_too_short` | 422 | JD with fewer than 200 non-space characters (including an empty field) |
 | `jd_too_long` | 422 | JD over 20k characters |
 | `invalid_request` | 422 | Missing or malformed request fields |
 
@@ -335,7 +352,9 @@ error messages or logs.
 
 ### Limits
 
-5 MB per file, 10 pages, 20k characters of JD text.
+5 MB per file, 10 pages, 20k characters of JD text, at least 200 non-space JD
+characters. `/api/health` reports `max_file_bytes`, `max_pages`,
+`max_jd_chars` and `min_jd_chars`.
 
 ### Headers
 

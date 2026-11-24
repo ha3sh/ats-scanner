@@ -7,11 +7,15 @@ tests pin exact expectations for all four PDF/DOCX fixtures.
 
 from pathlib import Path
 
+from ats_scanner.adapters.dictionary_loader import load_dictionary
 from ats_scanner.adapters.extract import SignatureRoutedExtractor
-from ats_scanner.core.pipeline import PipelineResult, analyze
+from ats_scanner.core.dictionary import build_index
+from ats_scanner.core.jd import BlockKind, RemovalReason
+from ats_scanner.core.pipeline import PipelineResult, analyze, analyze_jd
 from ats_scanner.core.report import SectionFinding, SectionName
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "resumes"
+JD_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "jds"
 
 
 def analyze_fixture(name: str) -> PipelineResult:
@@ -22,6 +26,26 @@ def analyze_fixture(name: str) -> PipelineResult:
 
 def by_name(result: PipelineResult) -> dict[SectionName, SectionFinding]:
     return {finding.name: finding for finding in result.sections}
+
+
+def test_analyze_jd_returns_the_cleaned_blocks_and_terms() -> None:
+    text = (JD_FIXTURES / "jd_boilerplate.txt").read_text(encoding="utf-8")
+    result = analyze_jd(text, build_index(load_dictionary()))
+    assert [(block.start_line, block.kind) for block in result.cleaned.kept] == [
+        (1, BlockKind.OTHER),
+        (5, BlockKind.REQUIREMENTS),
+        (9, BlockKind.RESPONSIBILITIES),
+    ]
+    assert [(block.start_line, block.reason) for block in result.cleaned.removed] == [
+        (3, RemovalReason.EQUAL_OPPORTUNITY),
+        (13, RemovalReason.BENEFITS),
+        (17, RemovalReason.ABOUT_COMPANY),
+        (20, RemovalReason.HOW_TO_APPLY),
+    ]
+    assert [(term.canonical, term.weight) for term in result.terms] == [
+        ("Python", 2.0),
+        ("SQL", 2.0),
+    ]
 
 
 def test_simple_pdf_row_order_sections_and_contact() -> None:

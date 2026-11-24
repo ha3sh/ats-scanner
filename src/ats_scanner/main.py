@@ -12,14 +12,17 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from ats_scanner.adapters.dictionary_loader import load_dictionary
 from ats_scanner.adapters.extract import SignatureRoutedExtractor
 from ats_scanner.api import create_app
+from ats_scanner.core.dictionary import build_index
 
 STATIC_DIR = Path(__file__).parent / "static"
 
 
 def build_app() -> FastAPI:
-    """Create the API app with the real extractor and mount the frontend."""
-    app = create_app(SignatureRoutedExtractor())
+    """Create the API app with the real extractor/index and mount the frontend."""
+    index = build_index(load_dictionary())  # built once per app, never per request
+    app = create_app(SignatureRoutedExtractor(), index)
     app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
     return app

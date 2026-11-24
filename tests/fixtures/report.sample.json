@@ -107,5 +107,80 @@
       "page": null,
       "line": null
     }
+  },
+  "jd": {
+    "cleaned": {
+      "kept": [
+        {
+          "text": "Frontend Engineer at Bluebird Analytics",
+          "start_line": 1,
+          "kind": "other"
+        },
+        {
+          "text": "About the role:\nBluebird Analytics is hiring a frontend engineer to build dashboards for wind farm operators.",
+          "start_line": 3,
+          "kind": "other"
+        },
+        {
+          "text": "Requirements:\n- Three years of JavaScript\n- Experience with REST APIs",
+          "start_line": 6,
+          "kind": "requirements"
+        },
+        {
+          "text": "Preferred:\n- TypeScript\n- Test automation experience",
+          "start_line": 10,
+          "kind": "preferred"
+        },
+        {
+          "text": "Responsibilities:\n- Build accessible interfaces\n- Pair with designers",
+          "start_line": 14,
+          "kind": "responsibilities"
+        }
+      ],
+      "removed": [
+        {
+          "text": "Benefits:\n- Health insurance\n- Flexible hours",
+          "start_line": 18,
+          "reason": "benefits"
+        },
+        {
+          "text": "How to apply:\nEmail careers@bluebird.example with your resume.",
+          "start_line": 22,
+          "reason": "how_to_apply"
+        }
+      ]
+    },
+    "terms": [
+      {
+        "canonical": "JavaScript",
+        "category": "language",
+        "weight": 2.0,
+        "required": true,
+        "occurrences": 1,
+        "surface": "JavaScript",
+        "line": 7,
+        "context": "- Three years of JavaScript"
+      },
+      {
+        "canonical": "REST",
+        "category": "practice",
+        "weight": 2.0,
+        "required": true,
+        "occurrences": 1,
+        "surface": "REST APIs",
+        "line": 8,
+        "context": "- Experience with REST APIs"
+      },
+      {
+        "canonical": "TypeScript",
+        "category": "language",
+        "weight": 1.0,
+        "required": false,
+        "occurrences": 1,
+        "surface": "TypeScript",
+        "line": 11,
+        "context": "- TypeScript"
+      }
+    ]
   }
 }

@@ -17,10 +17,12 @@ def _try_version(distribution: str) -> str:
 
 APP_VERSION: str = _try_version("ats-scanner") or "0"
 
-# Live in memory: 5 MB, 10 pages, 20k JD characters (SPEC §5 Limits).
+# Live in memory: 5 MB, 10 pages, 20k JD characters, at least 200 non-space
+# JD characters to analyze (SPEC §5 Limits).
 MAX_FILE_BYTES: int = 5 * 1024 * 1024
 MAX_PAGES: int = 10
 MAX_JD_CHARS: int = 20_000
+MIN_JD_CHARS: int = 200
 
 # DOCX packaging guards (SPEC §5): entries and the sum of the *declared*
 # uncompressed sizes are checked against the ZIP central directory before any

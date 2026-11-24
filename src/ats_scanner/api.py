@@ -14,7 +14,7 @@ import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -30,9 +30,12 @@ from ats_scanner.config import (
     MAX_FILE_BYTES,
     MAX_JD_CHARS,
     MAX_PAGES,
+    MIN_JD_CHARS,
 )
+from ats_scanner.core.dictionary import SkillEntry
 from ats_scanner.core.errors import AppError, ErrorCode
 from ats_scanner.core.pipeline import analyze as analyze_pipeline
+from ats_scanner.core.pipeline import analyze_jd
 from ats_scanner.core.ports import Extractor
 from ats_scanner.core.report import (
     SCHEMA_VERSION,
@@ -64,7 +67,18 @@ _TOO_LARGE_MESSAGE = (
     "The uploaded file is larger than the 5 MB limit. Try a smaller PDF or DOCX file."
 )
 
-_BODY_CAP = MAX_FILE_BYTES + 64 * 1024  # multipart framing allowance
+_JD_TOO_SHORT_MESSAGE = (
+    "The job description is too short. Paste a real job description of at least "
+    "200 non-space characters."
+)
+
+_JD_TOO_LONG_MESSAGE = (
+    "The job description is longer than the 20,000-character limit. Remove some text and try again."
+)
+
+# The multipart body holds the file plus the JD (4 bytes per character is
+# enough for UTF-8 text) plus framing.
+_BODY_CAP = MAX_FILE_BYTES + MAX_JD_CHARS * 4 + 64 * 1024
 
 _UPLOAD_MEMORY_LIMIT = _BODY_CAP  # spool threshold: at or above the body cap
 
@@ -90,6 +104,7 @@ class Limits(BaseModel):
     max_file_bytes: int
     max_pages: int
     max_jd_chars: int
+    min_jd_chars: int
 
 
 class HealthResponse(BaseModel):
@@ -198,17 +213,21 @@ def _log_result(result: str, filename: str, size_bytes: int, duration_ms: int) -
     )
 
 
-def create_app(extractor: Extractor | None = None) -> FastAPI:
-    """Build a fresh app; `extractor` is the one used by /api/analyze.
+def create_app(
+    extractor: Extractor | None = None,
+    index: dict[str, SkillEntry] | None = None,
+) -> FastAPI:
+    """Build a fresh app; `extractor` and `index` serve /api/analyze.
 
     api.py does not import adapters: main.build_app() injects the
-    SignatureRoutedExtractor; tests inject fakes.
+    SignatureRoutedExtractor and the dictionary index built once from the
+    adapter loader; tests inject fakes and a small index.
     """
     resolved_extractor = extractor
+    resolved_index = index
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        # Day 2 wiring note: the dictionary load will join here on Day 5.
         yield
 
     app = FastAPI(title="ats-scanner", lifespan=lifespan)
@@ -249,14 +268,24 @@ def create_app(extractor: Extractor | None = None) -> FastAPI:
                 max_file_bytes=MAX_FILE_BYTES,
                 max_pages=MAX_PAGES,
                 max_jd_chars=MAX_JD_CHARS,
+                min_jd_chars=MIN_JD_CHARS,
             ),
         )
+
+    async def _read_job_description(request: Request) -> str:
+        """The raw JD form value; Form(...) would turn an empty string into missing."""
+        form = await request.form()
+        value = form.get("job_description")
+        if not isinstance(value, str):
+            raise AppError(ErrorCode.INVALID_REQUEST, _VALIDATION_MESSAGE)
+        return value
 
     @app.post("/api/analyze", response_model=AnalysisReport)
     def _analyze(
         resume: UploadFile = File(...),  # noqa: B008 - the FastAPI dependency idiom
+        job_description: str = Depends(_read_job_description),
     ) -> AnalysisReport:
-        """Extract text from the uploaded resume (sync: runs in a threadpool)."""
+        """Extract the resume and analyze the pasted JD (sync: in a threadpool)."""
         started = time.perf_counter()
         filename = resume.filename or ""
         try:
@@ -266,6 +295,14 @@ def create_app(extractor: Extractor | None = None) -> FastAPI:
             size_bytes = len(data)
             content_type = resume.content_type or ""
             document = resolved_extractor.extract(data, filename, content_type)
+            if len(job_description) > MAX_JD_CHARS:
+                raise AppError(ErrorCode.JD_TOO_LONG, _JD_TOO_LONG_MESSAGE)
+            non_space = sum(not character.isspace() for character in job_description)
+            if non_space < MIN_JD_CHARS:
+                raise AppError(ErrorCode.JD_TOO_SHORT, _JD_TOO_SHORT_MESSAGE)
+            if resolved_index is None:
+                raise RuntimeError("create_app(expected an injected dictionary index)")
+            jd = analyze_jd(job_description, resolved_index)
             pipeline = analyze_pipeline(document)
             duration_ms = int((time.perf_counter() - started) * 1000)
             report = AnalysisReport(
@@ -296,6 +333,7 @@ def create_app(extractor: Extractor | None = None) -> FastAPI:
                 reading_order=pipeline.reading_order,
                 sections=pipeline.sections,
                 contact=pipeline.contact,
+                jd=jd,
             )
             _log_result("ok", filename, size_bytes, duration_ms)
             return report

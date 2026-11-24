@@ -1,8 +1,9 @@
 """Pydantic report models: the API response contract (SPEC §5 report shape).
 
 Grows with the pipeline: today schema/versions, meta, extracted text,
-reading order, sections and contact. Later days add verdict, score,
-terms, findings, alignment, suggestions, disclaimers.
+reading order, sections, contact and the JD view (cleaned blocks and
+terms). Later days add verdict, score, findings, alignment, suggestions,
+disclaimers.
 """
 
 from enum import StrEnum
@@ -11,6 +12,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from ats_scanner.core.documents import ExtractionWarning
+from ats_scanner.core.jd import CleanedJd
+from ats_scanner.core.terms import JdTerm
 
 SCHEMA_VERSION: int = 1
 
@@ -98,6 +101,15 @@ class ContactInfo(BaseModel):
     linkedin: ContactItem
 
 
+class JdAnalysis(BaseModel):
+    """The pasted JD split into blocks plus the dictionary terms found."""
+
+    model_config = ConfigDict(frozen=True)
+
+    cleaned: CleanedJd
+    terms: tuple[JdTerm, ...]
+
+
 class AnalysisReport(BaseModel):
     """The response of POST /api/analyze; grows with the pipeline."""
 
@@ -113,3 +125,5 @@ class AnalysisReport(BaseModel):
     sections: tuple[SectionFinding, ...]
     """Always all seven sections, fixed order (SPEC §4)."""
     contact: ContactInfo
+    jd: JdAnalysis
+    """The job description as pasted (cleaned blocks) and its terms."""

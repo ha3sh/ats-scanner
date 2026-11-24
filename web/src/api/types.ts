@@ -41,6 +41,59 @@ export type ContactInfo = {
   linkedin: ContactItem;
 };
 
+export type BlockKind = "requirements" | "preferred" | "responsibilities" | "other";
+
+export type RemovalReason =
+  | "equal_opportunity"
+  | "benefits"
+  | "about_company"
+  | "how_to_apply";
+
+export type KeptBlock = {
+  text: string;
+  start_line: number;
+  kind: BlockKind;
+};
+
+export type RemovedBlock = {
+  text: string;
+  start_line: number;
+  reason: RemovalReason;
+};
+
+export type CleanedJd = {
+  kept: KeptBlock[];
+  removed: RemovedBlock[];
+};
+
+export type SkillCategory =
+  | "language"
+  | "framework"
+  | "library"
+  | "database"
+  | "cloud"
+  | "devops"
+  | "data"
+  | "testing"
+  | "practice"
+  | "tool";
+
+export type JdTerm = {
+  canonical: string;
+  category: SkillCategory;
+  weight: number;
+  required: boolean;
+  occurrences: number;
+  surface: string;
+  line: number;
+  context: string;
+};
+
+export type JdAnalysis = {
+  cleaned: CleanedJd;
+  terms: JdTerm[];
+};
+
 export type ReportMeta = {
   filename: string;
   size_bytes: number;
@@ -72,6 +125,7 @@ export type AnalysisReport = {
   reading_order: ReadingOrder[];
   sections: SectionFinding[];
   contact: ContactInfo;
+  jd: JdAnalysis;
 };
 
 export type ErrorEnvelope = {
@@ -87,5 +141,6 @@ export type Health = {
     max_file_bytes: number;
     max_pages: number;
     max_jd_chars: number;
+    min_jd_chars: number;
   };
 };

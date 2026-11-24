@@ -17,11 +17,14 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from ats_scanner.adapters.dictionary_loader import load_dictionary
 from ats_scanner.adapters.extract import SignatureRoutedExtractor
 from ats_scanner.api import create_app
+from ats_scanner.core.dictionary import build_index
 from ats_scanner.core.report import AnalysisReport
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "resumes" / "resume_sidebar.pdf"
+JD_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "jds" / "jd_structured.txt"
 SAMPLE = Path(__file__).resolve().parent / "fixtures" / "report.sample.json"
 
 _REGENERATE = (
@@ -32,10 +35,11 @@ _REGENERATE = (
 
 def analyzed_json() -> dict[str, Any]:
     """One fresh analysis of resume_sidebar.pdf through the real endpoint."""
-    client = TestClient(create_app(SignatureRoutedExtractor()))
+    client = TestClient(create_app(SignatureRoutedExtractor(), build_index(load_dictionary())))
     response = client.post(
         "/api/analyze",
         files={"resume": ("resume_sidebar.pdf", FIXTURE.read_bytes(), "application/pdf")},
+        data={"job_description": JD_FIXTURE.read_text(encoding="utf-8")},
     )
     assert response.status_code == 200
     report: dict[str, Any] = response.json()

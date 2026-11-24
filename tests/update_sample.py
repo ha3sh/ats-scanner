@@ -14,18 +14,22 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+from ats_scanner.adapters.dictionary_loader import load_dictionary
 from ats_scanner.adapters.extract import SignatureRoutedExtractor
 from ats_scanner.api import create_app
+from ats_scanner.core.dictionary import build_index
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "resumes" / "resume_sidebar.pdf"
+JD_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "jds" / "jd_structured.txt"
 SAMPLE = Path(__file__).resolve().parent / "fixtures" / "report.sample.json"
 
 
 def main() -> None:
-    client = TestClient(create_app(SignatureRoutedExtractor()))
+    client = TestClient(create_app(SignatureRoutedExtractor(), build_index(load_dictionary())))
     response = client.post(
         "/api/analyze",
         files={"resume": ("resume_sidebar.pdf", FIXTURE.read_bytes(), "application/pdf")},
+        data={"job_description": JD_FIXTURE.read_text(encoding="utf-8")},
     )
     if response.status_code != 200:
         raise SystemExit(f"/api/analyze failed: {response.status_code} {response.text}")
