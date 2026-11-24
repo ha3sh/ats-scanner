@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
 
+import JdDiff from "./JdDiff";
 import type {
   AnalysisReport,
   ContactItem,
@@ -17,7 +18,7 @@ const ACCEPT =
 
 type BackendStatus =
   | { state: "checking" }
-  | { state: "ready"; version: string }
+  | { state: "ready"; version: string; limits: Health["limits"] }
   | { state: "unreachable" };
 
 type Phase =
@@ -30,8 +31,14 @@ export default function App() {
   const [backend, setBackend] = useState<BackendStatus>({ state: "checking" });
   const [phase, setPhase] = useState<Phase>({ state: "idle" });
   const [file, setFile] = useState<File | null>(null);
+  const [jobDescription, setJobDescription] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
+
+  const limits = backend.state === "ready" ? backend.limits : null;
+  const jdNonSpaceCount = jobDescription.replace(/\s/g, "").length;
+  const jdTooShort =
+    limits !== null && jdNonSpaceCount < limits.min_jd_chars;
 
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
   const alertRef = useRef<HTMLParagraphElement>(null);
@@ -47,7 +54,7 @@ export default function App() {
           return;
         }
         const health = (await response.json()) as Health;
-        setBackend({ state: "ready", version: health.version });
+        setBackend({ state: "ready", version: health.version, limits: health.limits });
       } catch {
         if (!controller.signal.aborted) {
           setBackend({ state: "unreachable" });
@@ -144,6 +151,7 @@ export default function App() {
     try {
       const form = new FormData();
       form.append("resume", file);
+      form.append("job_description", jobDescription);
       const response = await fetch("/api/analyze", {
         method: "POST",
         body: form,
@@ -249,9 +257,36 @@ export default function App() {
           Your resume is processed on this computer and is not saved.
         </p>
 
+        <div className="mt-8">
+          <label htmlFor="job-description" className="block font-medium text-ink">
+            Job description: paste the full text
+          </label>
+          <p id="job-description-hint" className="mt-1 text-sm text-muted">
+            {limits !== null
+              ? `At least ${limits.min_jd_chars.toLocaleString()} non-space characters, up to ${limits.max_jd_chars.toLocaleString()} characters.`
+              : "Paste the job description you are comparing against."}
+          </p>
+          <textarea
+            id="job-description"
+            name="job_description"
+            rows={10}
+            value={jobDescription}
+            onChange={(event) => setJobDescription(event.target.value)}
+            aria-describedby="job-description-hint job-description-count"
+            className="mt-3 w-full rounded-sm border border-rule bg-paper p-3 text-sm leading-relaxed text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          />
+          <p id="job-description-count" className="mt-1 text-sm text-muted" role="status">
+            {jdNonSpaceCount.toLocaleString()} non-space characters
+            {jdTooShort && " — add more text to enable analysis."}
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Your job description is processed on this computer and is not saved.
+          </p>
+        </div>
+
         <button
           type="submit"
-          disabled={analyzing}
+          disabled={analyzing || jdTooShort}
           className="mt-8 rounded-sm bg-ink px-5 py-2.5 font-medium text-paper transition-opacity duration-150 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           Analyze locally
@@ -333,6 +368,8 @@ export default function App() {
               </div>
             </div>
           </section>
+
+          <JdDiff jd={phase.report.jd} />
 
           <section className="mt-10 border-t border-rule pt-10">
           <h2 className="font-serif text-2xl font-semibold text-ink">
