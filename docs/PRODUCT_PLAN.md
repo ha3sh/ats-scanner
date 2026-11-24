@@ -38,7 +38,7 @@ Each day's feature is visible in the UI the same day (vertical slices). Fixtures
 and eval-harness work is test-first and grows daily from Day 2. Day 1 is done
 (CI green on ubuntu-latest and windows-latest). Days 2 and 3 are done. Day 4 is
 done (page/paragraph mapping is folded into Day 6, where evidence spans arrive).
-Day 5 is done; Day 6 is in progress — backend complete, only the UI remains.
+Days 5 and 6 are done.
 
 | Day | Feature | One line | Effort |
 | --- | --- | --- | --- |
@@ -47,7 +47,7 @@ Day 5 is done; Day 6 is in progress — backend complete, only the UI remains.
 | 3 (done) | Paper/ink design tokens + row/column order views | Design tokens (paper `#F7F5F0`, ink, vermilion/teal accents) land no later than Day 3; the page rendered in document row order and column-clustered order, each captioned "possible extractor outputs" | M |
 | 4 (done) | Sections & contact + eval harness skeleton | Section/contact visible in the report (page/paragraph mapping folded into Day 6, where evidence spans arrive); eval harness skeleton runs the pipeline over fixtures and compares to expected results; `tests/fixtures/report.sample.json` validates | M |
 | 5 (done) | JD-cleaning diff + terms | Required `job_description` on POST /api/analyze (≥200 non-space chars, ≤20k); `pipeline.analyze_jd` returns cleaned blocks + terms and the report carries them; the page shows the JD before/after boilerplate strip with term chips; `dictionary.json` loads and validates | M |
-| 6 (in progress) | Weighted coverage + near-misses + alignment | Backend DONE: one matcher over JD and chosen resume text with exact spans; deterministic weighted coverage with exposed numerator/denominator and harness facts; near-misses shown, never counted; title/seniority and experience alignment with evidence as informational findings outside the score. Remaining: the UI for coverage/near misses and the informational alignment view | M |
+| 6 (done) | Weighted coverage + near-misses + alignment | One matcher over JD and chosen resume text with exact spans; deterministic weighted coverage with exposed numerator/denominator and harness facts; near-misses shown, never counted; title/seniority and experience alignment with evidence as informational findings outside the score; the page shows coverage, term lists and alignment before the JD diff | M |
 | 7 | Format findings | Columns-suspected, tables, text boxes, headers/footers, icon-only contact, ambiguous/abbreviated date formats, heading degeneration — all generic, all with evidence + repair text | M |
 | 8 | Evidence ledger + suggestions + clipboard | Click-to-highlight span on every count; 3–5 template fixes tied to finding ids; copy-report action (clipboard JSON); schema freeze; `web/src/api/types.ts` regenerated | M |
 | 9 | Accessibility & polish pass | Keyboard-only, reduced-motion, 320 px + 1440 px, all designed error states — the UI has existed every day; this day is the polish pass, not first build | M |

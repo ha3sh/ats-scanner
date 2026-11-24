@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
 
+import Alignment from "./Alignment";
+import Coverage from "./Coverage";
 import JdDiff from "./JdDiff";
 import type {
   AnalysisReport,
@@ -368,6 +370,12 @@ export default function App() {
               </div>
             </div>
           </section>
+
+          <Coverage
+            score={phase.report.score}
+            terms={phase.report.terms}
+          />
+          <Alignment alignment={phase.report.alignment} />
 
           <JdDiff jd={phase.report.jd} />
 

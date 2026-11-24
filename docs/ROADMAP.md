@@ -17,8 +17,7 @@ launcher, minimal frontend shell served from `src/ats_scanner/static`, and CI �
 green on ubuntu-latest and windows-latest (Python 3.12). Days 2 and 3 are
 **done** (extraction, fixtures, tokens, row/column views, sections and
 contact). Day 4 is **done** (eval-harness skeleton + golden sample report).
-Day 5 is **done**; Day 6 is **in progress** — backend complete, only the UI
-remains.
+Days 5 and 6 are **done**.
 
 ## Ten days
 
@@ -29,7 +28,7 @@ remains.
 | 3 (done) | Paper/ink design tokens (paper `#F7F5F0`, ink, vermilion/teal); row-order and column-order views, each captioned "possible extractor outputs"; sections and contact parsing | Two orders render side by side from the same file; sections/contact correct on fixtures; tokens applied app-wide |
 | 4 (done) | Eval-harness skeleton (fixtures → pipeline → expected results, one `*.expected.json` beside each fixture asserting a defined subset — section names found, finding ids, coverage numerator/denominator — never the whole report); page/paragraph mapping is folded into Day 6, where evidence spans arrive; `tests/fixtures/report.sample.json` validated against the Pydantic report models | Harness runs and fails loudly on fixture changes; sample report validates, so the UI can keep building against it |
 | 5 (done) | JD-cleaning diff view (before/after boilerplate strip); term extraction; tech dictionary at `src/ats_scanner/data/dictionary.json` with load-and-validate test. `job_description` is required on POST /api/analyze (≥200 non-space chars, ≤20k), `pipeline.analyze_jd` returns the cleaned blocks and terms, the report carries them, and the page shows the Kept/Removed blocks and term chips | JD validation tests pass, terms sane on fixtures, dictionary test passes; the JD diff renders |
-| 6 (in progress) | Matching, spans, near-miss (shown, never counted), weighted coverage in `core/score.py`; title/seniority and experience alignment in `core/alignment.py` as informational-only. Backend done: one matcher for JD and resume, exact spans, conservative near misses, exact numerator/denominator and harness coverage facts, plus evidence-backed alignment statuses in the report and harness. Remaining: the UI for coverage/near misses and the informational alignment view | Deterministic coverage and alignment tests pass; alignment renders separately and never affects `score` |
+| 6 (done) | Matching, spans, near-miss (shown, never counted), weighted coverage in `core/score.py`; title/seniority and experience alignment in `core/alignment.py` as informational-only. One matcher for JD and resume, exact spans, conservative near misses, exact numerator/denominator and harness facts, evidence-backed alignment statuses, and the UI: coverage headline/definition/term lists plus the separate alignment rows, shown before the JD diff | Deterministic coverage and alignment tests pass; alignment renders separately and never affects `score` |
 | 7 | Layout heuristics and format findings (columns suspected, tables, text boxes, headers/footers, icon-only contact, abbreviated/ambiguous date formats, heading degeneration) — all generic, evidence + fix, no vendor names | Findings with evidence render; new fixtures cover each finding |
 | 8 | Evidence ledger with click-to-highlight spans; template suggestions in `core/suggestions.py` (3–5 fixes tied to finding ids); copy-report action; schema freeze; TypeScript type generation | Every count navigates to its span; report copied to clipboard; contract locked; `web/src/api/types.ts` regenerated and committed |
 | 9 | Accessibility, responsive, error screens pass: keyboard-only, reduced motion, 320 px and 1440 px, all designed error states | A11y and responsive checks pass; every error code has a designed screen |
