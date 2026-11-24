@@ -218,5 +218,43 @@
     },
     "definition": "coverage = sum(weight(matched terms)) / sum(weight(all terms))",
     "state": "terms"
+  },
+  "alignment": {
+    "title": {
+      "status": "differs",
+      "jd_evidence": {
+        "text": "Frontend Engineer at Bluebird Analytics",
+        "line": 1
+      },
+      "resume_evidence": {
+        "text": "Data Engineer, Sample Analytics Co.",
+        "page": 1,
+        "line": 27
+      }
+    },
+    "seniority": {
+      "status": "unknown",
+      "jd_evidence": {
+        "text": null,
+        "line": null
+      },
+      "resume_evidence": {
+        "text": null,
+        "page": null,
+        "line": null
+      }
+    },
+    "experience": {
+      "status": "aligned",
+      "jd_evidence": {
+        "text": "- Three years of JavaScript",
+        "line": 7
+      },
+      "resume_evidence": {
+        "text": "Data engineer with six years of experience",
+        "page": 1,
+        "line": 23
+      }
+    }
   }
 }

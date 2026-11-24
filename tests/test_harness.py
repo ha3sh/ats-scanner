@@ -28,6 +28,8 @@ OK_FACTS = FixtureFacts(
     sections_missing=frozenset({"projects"}),
     contact={"email": True, "phone": False, "linkedin": False},
     warning_codes=frozenset(),
+    coverage=(0.0, 5.0),
+    alignment={"title": "differs", "seniority": "unknown", "experience": "aligned"},
 )
 
 ERROR_FACTS = FixtureFacts(
@@ -119,6 +121,19 @@ def test_error_must_be_the_only_key() -> None:
     messages = check({"error": "bad_pdf", "reading_order": ["row"]}, ERROR_FACTS)
     assert len(messages) == 1
     assert "only" in messages[0]
+
+
+def test_alignment_facts_compare_as_a_subset() -> None:
+    assert check({"alignment": {"title": "differs"}}, OK_FACTS) == []
+    messages = check({"alignment": {"title": "aligned"}}, OK_FACTS)
+    assert len(messages) == 1
+    assert "aligned" in messages[0] and "differs" in messages[0]
+
+
+def test_alignment_fails_loudly_on_an_unknown_check_name() -> None:
+    messages = check({"alignment": {"vibe": "aligned"}}, OK_FACTS)
+    assert len(messages) == 1
+    assert "vibe" in messages[0]
 
 
 JD_CLEANED = CleanedJd(

@@ -195,6 +195,53 @@ class CoverageScore(BaseModel):
     state: Literal["terms", "no_terms"]
 
 
+class AlignmentStatus(StrEnum):
+    """The three honest states of an informational alignment check."""
+
+    ALIGNED = "aligned"
+    DIFFERS = "differs"
+    UNKNOWN = "unknown"
+
+
+class JdEvidence(BaseModel):
+    """The JD line behind an alignment state; absent when there is no signal."""
+
+    model_config = ConfigDict(frozen=True)
+
+    text: str | None = None
+    line: int | None = Field(default=None, ge=1)
+
+
+class ResumeEvidence(BaseModel):
+    """The resume line behind an alignment state; absent when there is no signal."""
+
+    model_config = ConfigDict(frozen=True)
+
+    text: str | None = None
+    page: int | None = Field(default=None, ge=1)
+    line: int | None = Field(default=None, ge=1)
+
+
+class AlignmentCheck(BaseModel):
+    """One informational check: a state plus evidence on both sides."""
+
+    model_config = ConfigDict(frozen=True)
+
+    status: AlignmentStatus
+    jd_evidence: JdEvidence
+    resume_evidence: ResumeEvidence
+
+
+class Alignment(BaseModel):
+    """Title, seniority and experience — never part of `score` (SPEC §3)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    title: AlignmentCheck
+    seniority: AlignmentCheck
+    experience: AlignmentCheck
+
+
 class AnalysisReport(BaseModel):
     """The response of POST /api/analyze; grows with the pipeline."""
 
@@ -216,3 +263,5 @@ class AnalysisReport(BaseModel):
     """Matched, missing and near-miss terms, each with evidence."""
     score: CoverageScore
     """Weighted JD term coverage; numerator and denominator exposed exactly."""
+    alignment: Alignment
+    """Informational title/seniority/experience comparison, separate from score."""

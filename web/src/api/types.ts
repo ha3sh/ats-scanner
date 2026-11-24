@@ -145,6 +145,31 @@ export type CoverageScore = {
   state: "terms" | "no_terms";
 };
 
+export type AlignmentStatus = "aligned" | "differs" | "unknown";
+
+export type JdEvidence = {
+  text: string | null;
+  line: number | null;
+};
+
+export type ResumeEvidence = {
+  text: string | null;
+  page: number | null;
+  line: number | null;
+};
+
+export type AlignmentCheck = {
+  status: AlignmentStatus;
+  jd_evidence: JdEvidence;
+  resume_evidence: ResumeEvidence;
+};
+
+export type Alignment = {
+  title: AlignmentCheck;
+  seniority: AlignmentCheck;
+  experience: AlignmentCheck;
+};
+
 export type ReportMeta = {
   filename: string;
   size_bytes: number;
@@ -179,6 +204,7 @@ export type AnalysisReport = {
   jd: JdAnalysis;
   terms: TermAnalysis;
   score: CoverageScore;
+  alignment: Alignment;
 };
 
 export type ErrorEnvelope = {

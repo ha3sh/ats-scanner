@@ -13,6 +13,7 @@ asserting a SUBSET of the result. Allowed keys, all optional:
   extraction must raise AppError with exactly that code
 - `covered_weight`, `total_weight`: exact weighted coverage numerator and
   denominator against the shared JD fixture, compared as floats
+- `alignment`: object with title/seniority/experience status strings only
 
 JD fixtures use `kept`/`removed` (block lists) plus `terms` (a subset
 check: list of {canonical, weight?} that must all be present) and
@@ -30,11 +31,12 @@ from pathlib import Path
 
 from ats_scanner.adapters.dictionary_loader import load_dictionary
 from ats_scanner.adapters.extract import SignatureRoutedExtractor
+from ats_scanner.core.alignment import check_alignment
 from ats_scanner.core.dictionary import SkillEntry, build_index
 from ats_scanner.core.errors import AppError
 from ats_scanner.core.jd import CleanedJd, clean_jd
 from ats_scanner.core.pipeline import analyze, analyze_terms
-from ats_scanner.core.report import SectionName
+from ats_scanner.core.report import AlignmentStatus, SectionName
 from ats_scanner.core.terms import JdTerm, extract_terms
 
 _ALLOWED_KEYS = frozenset(
@@ -47,6 +49,7 @@ _ALLOWED_KEYS = frozenset(
         "error",
         "covered_weight",
         "total_weight",
+        "alignment",
     }
 )
 JD_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "jds" / "jd_structured.txt"
@@ -66,6 +69,7 @@ class FixtureFacts:
     contact: dict[str, bool]
     warning_codes: frozenset[str]
     coverage: tuple[float, float] | None = None
+    alignment: dict[str, str] | None = None
 
 
 def run_fixture(path: Path) -> FixtureFacts:
@@ -84,7 +88,9 @@ def run_fixture(path: Path) -> FixtureFacts:
         )
     index = _jd_index()
     result = analyze(document, index)
-    _, score = analyze_terms(run_jd(JD_FIXTURE).terms, result, index)
+    jd_facts = run_jd(JD_FIXTURE)
+    _, score = analyze_terms(jd_facts.terms, result, index)
+    alignment = check_alignment(jd_facts.cleaned, result.chosen, result.sections)
     return FixtureFacts(
         error=None,
         reading_order=tuple(result.reading_order),
@@ -97,6 +103,10 @@ def run_fixture(path: Path) -> FixtureFacts:
         },
         warning_codes=frozenset(warning.code.value for warning in document.warnings),
         coverage=(score.covered_weight, score.total_weight),
+        alignment={
+            name: getattr(alignment, name).status.value
+            for name in ("title", "seniority", "experience")
+        },
     )
 
 
@@ -132,7 +142,35 @@ def check(expected: dict[str, object], actual: FixtureFacts) -> list[str]:
     _check_contact(expected, actual, messages)
     _check_warning_codes(expected, actual, messages)
     _check_coverage(expected, actual, messages)
+    _check_alignment(expected, actual, messages)
     return messages
+
+
+def _check_alignment(
+    expected: dict[str, object], actual: FixtureFacts, messages: list[str]
+) -> None:
+    value = expected.get("alignment")
+    if value is None:
+        return
+    if not isinstance(value, dict):
+        messages.append("'alignment' must be an object of title/seniority/experience statuses")
+        return
+    allowed = {status.value for status in AlignmentStatus}
+    unknown = sorted(set(value) - {"title", "seniority", "experience"})
+    if unknown:
+        messages.append(f"alignment: unknown check(s): {', '.join(unknown)}")
+        return
+    for name in sorted(value):
+        status = value[name]
+        if not isinstance(status, str) or status not in allowed:
+            messages.append(f"alignment.{name}: expected one of {sorted(allowed)}")
+            continue
+        if actual.alignment is None:
+            messages.append(f"alignment.{name}: no alignment facts for this fixture")
+        elif actual.alignment.get(name) != status:
+            messages.append(
+                f"alignment.{name}: expected {status}, got {actual.alignment.get(name)}"
+            )
 
 
 def _check_coverage(expected: dict[str, object], actual: FixtureFacts, messages: list[str]) -> None:

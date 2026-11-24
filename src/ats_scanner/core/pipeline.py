@@ -11,12 +11,14 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
 
+from ats_scanner.core.alignment import check_alignment
 from ats_scanner.core.contact import find_contact
 from ats_scanner.core.dictionary import SkillEntry
 from ats_scanner.core.documents import ExtractedDocument
 from ats_scanner.core.jd import clean_jd
 from ats_scanner.core.match import ResumeMatch, build_term_analysis, match_resume
 from ats_scanner.core.report import (
+    Alignment,
     ContactInfo,
     CoverageScore,
     JdAnalysis,
@@ -74,6 +76,11 @@ def analyze_terms(
     """Explain every JD term and score only exact matches."""
     analysis = build_term_analysis(terms, pipeline.matches, pipeline.chosen, index)
     return analysis, score_coverage(analysis)
+
+
+def analyze_alignment(jd: JdAnalysis, pipeline: PipelineResult) -> Alignment:
+    """Informational comparison only; it never receives or changes a score."""
+    return check_alignment(jd.cleaned, pipeline.chosen, pipeline.sections)
 
 
 def analyze_jd(jd_text: str, index: dict[str, SkillEntry]) -> JdAnalysis:

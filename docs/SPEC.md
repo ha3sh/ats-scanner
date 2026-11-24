@@ -196,6 +196,30 @@ separate from `score`.
   resume date ranges; report `~6 yrs detected vs 5+ requested`. Informational
   only, clearly labeled an estimate.
 
+Each of the three checks returns `aligned`, `differs` or `unknown` plus the
+exact JD line (1-based) and resume line (page + 1-based line) behind it.
+`unknown` is the honest default whenever either side gives no clear signal;
+nothing is guessed. Where this SPEC is silent, v1 is deliberately conservative:
+
+- **Title**: role nouns (engineer, developer, analyst, ...) must appear on both
+  sides. Case, punctuation, company/location suffixes, `Sr.`/`Jr.`, `eng`/
+  `dev`, and level suffixes (`II`, `III`, `IV`) are normalized away; equal or
+  subset token sets are aligned, otherwise it is `differs`. A two-line title is
+  joined when the second line is a short continuation.
+- **Seniority**: fixed ladder intern → junior → mid → senior → lead →
+  principal (`II`→mid, `III`→senior, `IV`→lead). More than one distinct cue on
+  a side is ambiguous → `unknown`.
+- **Experience**: JD `3+`, `2-4`, `three`/`four`/... all give a requested
+  minimum. A resume's explicit "X years of experience" wins over derived
+  dates. Date ranges are merged so months are not double counted; an open
+  "present" range ends in December of the latest year the resume itself
+  mentions — never the wall clock, so reports stay deterministic. Bare year
+  runs (`2013`) are not experience claims. Meeting the minimum is `aligned`
+  even when the resume exceeds it.
+
+Alignment is informational only: it is never an input to `score.py`, matched/
+missing terms or near misses, and no wording suggests pass/fail.
+
 ### Determinism
 
 No randomness, no network, no model inference. The dictionary version, engine
@@ -340,14 +364,15 @@ Implemented today (later pipeline days extend it):
 - `terms.near_misses[]`: term, found variant, distance, counted = false
 - `score`: covered_weight, total_weight, pct, required {covered, total}, other
   {covered, total}, definition, state ("terms" or "no_terms")
+- `alignment`: title, seniority, experience — each with status ("aligned",
+  "differs" or "unknown"), `jd_evidence` {text, line} and `resume_evidence`
+  {text, page, line}; informational, separate from `score`
 
 Remaining for later days:
 
 - `verdict`: one-line sentence
 - `findings[]`: id, severity, title, detail, evidence, location, fix
 - `suggestions[]`: finding id, text
-- `alignment`: title, seniority, experience — informational, separate from
-  `score`
 - `disclaimers`
 
 ### Error codes
